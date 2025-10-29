@@ -68,15 +68,7 @@ namespace JwtAuthApi.Controllers
             await _userManager.AddToRoleAsync(user, "User");
 
             //generate email confirmation token
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            var confirmationLink = Url.Action(
-                nameof(ConfirmEmail),
-                "Auth",
-                new { userId = user.Id, token },
-                Request.Scheme
-                );
-
-            await _emailService.SendEmailConfirmationAsync(user.Email, confirmationLink!);
+            await SendEmailConfirmationAsync(user);
 
             _logger.LogInformation($"User '{model.Username}' registered successfully");
 
@@ -112,6 +104,25 @@ namespace JwtAuthApi.Controllers
                 message = "Email confirmation failed. The link may be expired or invalid.",
                 errors = result.Errors
             });
+        }
+
+        // Resend email confirmation link
+        [HttpPost("resend-confirmation")]
+        public async Task<IActionResult> ResendConfirmation([FromBody] string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+
+            // Don't reveal if email exists (security)
+            if (user == null)
+                return Ok(new { message = "If the email exists, a confirmation link has been sent" });
+
+            if (user.EmailConfirmed)
+                return BadRequest(new { message = "Email is already confirmed" });
+
+            // Generate new confirmation token
+            await SendEmailConfirmationAsync(user);
+
+            return Ok(new { message = "Confirmation email has been resent" });
         }
 
         [HttpPost("login")]
@@ -278,6 +289,20 @@ namespace JwtAuthApi.Controllers
             user.TwoFactorCodeExpiry = DateTime.UtcNow.AddMinutes(5);
             await _userManager.UpdateAsync(user);
             await _emailService.Send2FACodeAsync(user.Email!, code);
+        }
+        private async Task SendEmailConfirmationAsync(AppUser user)
+        {
+
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var confirmationLink = Url.Action(
+                nameof(ConfirmEmail),
+                "Auth",
+                new { userId = user.Id, token },
+                Request.Scheme
+                );
+
+            await _emailService.SendEmailConfirmationAsync(user.Email!, confirmationLink!);
+
         }
         private string GenerateRandom6DigitCode()
         {
