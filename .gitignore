@@ -1,0 +1,24 @@
+# Build results
+JwtAuthApi/[Bb]in/
+JwtAuthApi/[Oo]bj/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+
+# Logs
+*.log
+
+# Database files
+*.mdf
+*.ldf
+
+# Environment files
+JwtAuthApi/appsettings.json
+
+
+# Others
+/TestResults/
+/packages/
+/node_modules/
