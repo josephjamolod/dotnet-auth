@@ -230,6 +230,46 @@ namespace JwtAuthApi.Controllers
             });
         }
 
+        // RESEND 2FA CODE ENDPOINT 
+        [HttpPost("resend-2fa-code")]
+        public async Task<IActionResult> Resend2FACode([FromBody] string username)
+        {
+            if (string.IsNullOrEmpty(username))
+            {
+                return BadRequest(new { message = "Username is required" });
+            }
+
+            var user = await _userManager.FindByNameAsync(username);
+            if (user == null || !user.TwoFactorEnabled)
+            {
+                return Ok(new { message = "If your account has 2FA enabled, a new code has been sent" });
+            }
+
+            // Rate limiting: Wait 1 minute between requests
+            if (user.TwoFactorCodeExpiry.HasValue &&
+                user.TwoFactorCodeExpiry.Value > DateTime.UtcNow.AddMinutes(-1))
+            {
+                var secondsRemaining = (int)(user.TwoFactorCodeExpiry.Value.AddMinutes(-4) - DateTime.UtcNow).TotalSeconds;
+                if (secondsRemaining > 0)
+                {
+                    return BadRequest(new
+                    {
+                        message = $"Please wait {secondsRemaining} seconds before requesting a new code"
+                    });
+                }
+            }
+
+            await SendNew2FACodeAsync(user);
+
+            _logger.LogInformation($"2FA code resent to {username}");
+
+            return Ok(new
+            {
+                message = "A new verification code has been sent to your email",
+                expiresIn = "5 minutes"
+            });
+        }
+
         // HELPER METHODS
         private async Task SendNew2FACodeAsync(AppUser user)
         {
@@ -237,7 +277,6 @@ namespace JwtAuthApi.Controllers
             user.TwoFactorCode = code;
             user.TwoFactorCodeExpiry = DateTime.UtcNow.AddMinutes(5);
             await _userManager.UpdateAsync(user);
-
             await _emailService.Send2FACodeAsync(user.Email!, code);
         }
         private string GenerateRandom6DigitCode()
