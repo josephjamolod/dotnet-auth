@@ -37,10 +37,10 @@ namespace JwtAuthApi.Controllers
                 return BadRequest(ModelState);
             }
             //check if username already exist
-            var existingUser = await _userManager.FindByNameAsync(model.Email);
+            var existingUser = await _userManager.FindByNameAsync(model.Username);
             if (existingUser != null)
             {
-                return BadRequest(new { message = "Email already exist!" });
+                return BadRequest(new { message = "User already exist!" });
             }
 
             //check if email already exist
@@ -144,14 +144,7 @@ namespace JwtAuthApi.Controllers
             // Check if 2FA is enabled for this user
             if (user.TwoFactorEnabled)
             {
-                // Generate 6-digit code
-                var code = GenerateRandom6DigitCode();
-                user.TwoFactorCode = code;
-                user.TwoFactorCodeExpiry = DateTime.UtcNow.AddMinutes(5);
-                await _userManager.UpdateAsync(user);
-
-                // Send code via email
-                await _emailService.Send2FACodeAsync(user.Email!, code);
+                await SendNew2FACodeAsync(user);
 
                 _logger.LogInformation($"2FA code sent to {model.UserName}");
 
@@ -238,6 +231,15 @@ namespace JwtAuthApi.Controllers
         }
 
         // HELPER METHODS
+        private async Task SendNew2FACodeAsync(AppUser user)
+        {
+            var code = GenerateRandom6DigitCode();
+            user.TwoFactorCode = code;
+            user.TwoFactorCodeExpiry = DateTime.UtcNow.AddMinutes(5);
+            await _userManager.UpdateAsync(user);
+
+            await _emailService.Send2FACodeAsync(user.Email!, code);
+        }
         private string GenerateRandom6DigitCode()
         {
             var random = new Random();
