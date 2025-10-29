@@ -62,7 +62,6 @@ namespace JwtAuthApi.Controllers
             var result = await _userManager.CreateAsync(user, model.Password);
             if (!result.Succeeded)
             {
-
                 return BadRequest(result.Errors);
 
             }
@@ -174,6 +173,58 @@ namespace JwtAuthApi.Controllers
             _context.RefreshTokens.Add(refreshToken);
             await _context.SaveChangesAsync();
             _logger.LogInformation($"User '{model.UserName}' logged in successfully from {GetIpAddress()}");
+            return Ok(new AuthResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken.Token,
+                AccessTokenExpiration = DateTime.UtcNow.AddMinutes(15),
+                Username = user.UserName!,
+                Email = user.Email!,
+                Roles = roles.ToList(),
+                RequiresTwoFactor = false
+            });
+        }
+
+        //Verify 2fa and complete the login process
+        [HttpPost("verify-2fa")]
+        public async Task<IActionResult> Verify2FA([FromBody] Verify2FADto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var user = await _userManager.FindByNameAsync(model.Username);
+            if (user == null)
+            {
+                _logger.LogWarning($"2FA verification failed - user not found: {model.Username}");
+                return Unauthorized(new { message = "Invalid verification request" });
+            }
+            // Validate 2FA code
+            if (user.TwoFactorCode != model.Code ||
+                user.TwoFactorCodeExpiry == null ||
+                user.TwoFactorCodeExpiry < DateTime.UtcNow)
+            {
+                _logger.LogWarning($"Invalid or expired 2FA code for user '{model.Username}'");
+                return Unauthorized(new
+                {
+                    message = "Invalid or expired verification code. Please request a new code."
+                });
+            }
+            // Clear 2FA code after successful verification
+            user.TwoFactorCode = null;
+            user.TwoFactorCodeExpiry = null;
+            await _userManager.UpdateAsync(user);
+            // Generate tokens
+            var roles = await _userManager.GetRolesAsync(user);
+            var accessToken = _tokenService.GenerateAccessToken(user, roles);
+            var refreshToken = _tokenService.GenerateRefreshToken(GetIpAddress());
+
+            refreshToken.UserId = user.Id;
+            _context.RefreshTokens.Add(refreshToken);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"2FA verification successful for user '{model.Username}'");
+
             return Ok(new AuthResponseDto
             {
                 AccessToken = accessToken,
