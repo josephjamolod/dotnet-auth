@@ -1,0 +1,206 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using JwtAuthApi.Data;
+using JwtAuthApi.Dtos;
+using JwtAuthApi.Interfaces;
+using JwtAuthApi.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+
+namespace JwtAuthApi.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AuthController : ControllerBase
+    {
+        private readonly UserManager<AppUser> _userManager;
+        private readonly ILogger<AuthController> _logger;
+        private readonly IEmailService _emailService;
+        private readonly ITokenService _tokenService;
+        private readonly ApplicationDBContext _context;
+        public AuthController(UserManager<AppUser> userManager, ILogger<AuthController> logger, IEmailService emailService, ITokenService tokenService, ApplicationDBContext context)
+        {
+            _userManager = userManager;
+            _logger = logger;
+            _emailService = emailService;
+            _tokenService = tokenService;
+            _context = context;
+
+        }
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            //check if username already exist
+            var existingUser = await _userManager.FindByNameAsync(model.Email);
+            if (existingUser != null)
+            {
+                return BadRequest(new { message = "Email already exist!" });
+            }
+
+            //check if email already exist
+            existingUser = await _userManager.FindByEmailAsync(model.Email);
+            if (existingUser != null)
+            {
+                return BadRequest(new { message = "Email already exist!" });
+            }
+
+            //create AppUser instance
+            var user = new AppUser()
+            {
+                UserName = model.Username,
+                Email = model.Email,
+                FirstName = model.FirstName,
+                LastName = model.LastName
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+            if (!result.Succeeded)
+            {
+
+                return BadRequest(result.Errors);
+
+            }
+            await _userManager.AddToRoleAsync(user, "User");
+
+            //generate email confirmation token
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var confirmationLink = Url.Action(
+                nameof(ConfirmEmail),
+                "Auth",
+                new { userId = user.Id, token },
+                Request.Scheme
+                );
+
+            await _emailService.SendEmailConfirmationAsync(user.Email, confirmationLink!);
+
+            _logger.LogInformation($"User '{model.Username}' registered successfully");
+
+            return Ok(new
+            {
+                message = "Registration successful! Please check your email to confirm your account."
+            });
+        }
+
+        [HttpGet("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        {
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
+                return BadRequest(new { message = "Invalid confirmation link" });
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return BadRequest(new { message = "User not found" });
+
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+
+            if (result.Succeeded)
+            {
+                _logger.LogInformation($"Email confirmed for user '{user.UserName}'");
+                return Ok(new
+                {
+                    message = "Email confirmed successfully! You can now log in to your account."
+                });
+            }
+
+            return BadRequest(new
+            {
+                message = "Email confirmation failed. The link may be expired or invalid.",
+                errors = result.Errors
+            });
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var user = await _userManager.FindByNameAsync(model.UserName);
+            if (user == null)
+            {
+                _logger.LogWarning($"Failed login attempt for username: {model.UserName}");
+                return Unauthorized(new { message = "User Cannot be found" });
+            }
+            var isCorrectPassword = await _userManager.CheckPasswordAsync(user, model.Password);
+            if (!isCorrectPassword)
+            {
+                _logger.LogWarning($"Failed login attempt for username: {model.UserName} - Invalid password");
+                return Unauthorized(new { message = "Invalid Credentials!" });
+            }
+            if (!user.EmailConfirmed)
+            {
+                return Unauthorized(new
+                {
+                    message = "Please confirm your email before logging in. Check your inbox for confirmation link."
+                });
+            }
+            // Check if 2FA is enabled for this user
+            if (user.TwoFactorEnabled)
+            {
+                // Generate 6-digit code
+                var code = GenerateRandom6DigitCode();
+                user.TwoFactorCode = code;
+                user.TwoFactorCodeExpiry = DateTime.UtcNow.AddMinutes(5);
+                await _userManager.UpdateAsync(user);
+
+                // Send code via email
+                await _emailService.Send2FACodeAsync(user.Email!, code);
+
+                _logger.LogInformation($"2FA code sent to {model.UserName}");
+
+                return Ok(new AuthResponseDto
+                {
+                    RequiresTwoFactor = true,
+                    Username = user.UserName!,
+                    Email = user.Email!
+                });
+            }
+
+            // Generate tokens
+            var roles = await _userManager.GetRolesAsync(user);
+            var accessToken = _tokenService.GenerateAccessToken(user, roles);
+            var refreshToken = _tokenService.GenerateRefreshToken(GetIpAddress());
+
+            // Save refresh token to database
+            refreshToken.UserId = user.Id;
+            _context.RefreshTokens.Add(refreshToken);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation($"User '{model.UserName}' logged in successfully from {GetIpAddress()}");
+            return Ok(new AuthResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken.Token,
+                AccessTokenExpiration = DateTime.UtcNow.AddMinutes(15),
+                Username = user.UserName!,
+                Email = user.Email!,
+                Roles = roles.ToList(),
+                RequiresTwoFactor = false
+            });
+        }
+
+        // HELPER METHODS
+        private string GenerateRandom6DigitCode()
+        {
+            var random = new Random();
+            return random.Next(100000, 999999).ToString();
+        }
+
+        private string GetIpAddress()
+        {
+            // Check for forwarded IP (if behind proxy/load balancer)
+            if (Request.Headers.ContainsKey("X-Forwarded-For"))
+                return Request.Headers["X-Forwarded-For"]!;
+
+            return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+        }
+
+    }
+}
