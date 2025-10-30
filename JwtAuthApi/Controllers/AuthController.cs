@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using JwtAuthApi.Data;
 using JwtAuthApi.Dtos;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -278,6 +280,26 @@ namespace JwtAuthApi.Controllers
             {
                 message = "A new verification code has been sent to your email",
                 expiresIn = "5 minutes"
+            });
+        }
+
+        [HttpPost("enable-2fa")]
+        [Authorize]
+        public async Task<IActionResult> Enable2FA()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var user = await _userManager.FindByIdAsync(userId!);
+            if (user == null)
+                return NotFound(new { message = "User not found" });
+            if (user.TwoFactorEnabled)
+
+                return BadRequest(new { message = "2FA already enabled" });
+            await _userManager.SetTwoFactorEnabledAsync(user, true);
+            _logger.LogInformation($"2FA enabled for user '{user.UserName}'");
+
+            return Ok(new
+            {
+                message = "Two-factor authentication has been enabled successfully"
             });
         }
 
