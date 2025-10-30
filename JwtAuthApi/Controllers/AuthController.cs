@@ -317,7 +317,10 @@ namespace JwtAuthApi.Controllers
         public async Task<IActionResult> Enable2FA()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var user = await _userManager.FindByIdAsync(userId!);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(new { message = "Invalid authentication token" });
+
+            var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
                 return NotFound(new { message = "User not found" });
             if (user.TwoFactorEnabled)
@@ -337,7 +340,9 @@ namespace JwtAuthApi.Controllers
         public async Task<IActionResult> Disable2FA()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var user = await _userManager.FindByIdAsync(userId!);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(new { message = "Invalid authentication token" });
+            var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
                 return NotFound(new { message = "User cannot be found" });
             if (!user.TwoFactorEnabled)
@@ -379,9 +384,7 @@ namespace JwtAuthApi.Controllers
             var newRefreshToken = _tokenService.GenerateRefreshToken(GetIpAddress());
 
             // Mark old token as revoked
-            token.RevokedAt = DateTime.UtcNow;
-            token.RevokedByIp = GetIpAddress();
-            token.ReplacedByToken = newRefreshToken.Token;
+            await RevokeOldToken(token);
 
             // Save new refresh token
             newRefreshToken.UserId = user.Id;
@@ -400,8 +403,29 @@ namespace JwtAuthApi.Controllers
                 Roles = roles.ToList()
             });
         }
+        [HttpPost("revoke")]
+        public async Task<IActionResult> RevokeToken([FromBody] string refreshToken)
+        {
+            var token = await _context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+            if (token == null || !token.IsActive)
+                return NotFound(new { message = "Token not found or already revoked" });
+            // Mark token as revoked
+            await RevokeOldToken(token);
+
+            _logger.LogInformation("Refresh token revoked successfully");
+
+            return Ok(new { message = "Token revoked successfully" });
+        }
 
         // HELPER METHODS
+        private async ValueTask RevokeOldToken(RefreshToken token)
+        {
+            token.RevokedAt = DateTime.UtcNow;
+            token.RevokedByIp = GetIpAddress();
+            await _context.SaveChangesAsync();
+
+        }
+
         private async Task SendNew2FACodeAsync(AppUser user)
         {
             var code = GenerateRandom6DigitCode();
