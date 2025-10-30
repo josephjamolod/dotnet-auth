@@ -111,9 +111,13 @@ namespace JwtAuthApi.Controllers
 
         // Resend email confirmation link
         [HttpPost("resend-confirmation")]
-        public async Task<IActionResult> ResendConfirmation([FromBody] string email)
+        public async Task<IActionResult> ResendConfirmation([FromBody] ResendConfirmationDto model)
         {
-            var user = await _userManager.FindByEmailAsync(email);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
 
             // Don't reveal if email exists (security)
             if (user == null)
@@ -272,14 +276,12 @@ namespace JwtAuthApi.Controllers
 
         // RESEND 2FA CODE ENDPOINT 
         [HttpPost("resend-2fa-code")]
-        public async Task<IActionResult> Resend2FACode([FromBody] string username)
+        public async Task<IActionResult> Resend2FACode([FromBody] Resend2FACodeDto model)
         {
-            if (string.IsNullOrEmpty(username))
-            {
-                return BadRequest(new { message = "Username is required" });
-            }
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            var user = await _userManager.FindByNameAsync(username);
+            var user = await _userManager.FindByNameAsync(model.Username);
             if (user == null || !user.TwoFactorEnabled)
                 return Ok(new { message = "If your account has 2FA enabled, a new code has been sent" });
 
@@ -303,7 +305,7 @@ namespace JwtAuthApi.Controllers
 
             await SendNew2FACodeAsync(user);
 
-            _logger.LogInformation($"2FA code resent to {username}");
+            _logger.LogInformation($"2FA code resent to {model.Username}");
 
             return Ok(new
             {
@@ -363,12 +365,14 @@ namespace JwtAuthApi.Controllers
 
         /// Refresh expired access token using refresh token
         [HttpPost("refresh")]
-        public async Task<IActionResult> RefreshToken([FromBody] string refreshToken)
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto model)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
             // Find refresh token in database
             var token = await _context.RefreshTokens
                 .Include(rt => rt.User)
-                .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+                .FirstOrDefaultAsync(rt => rt.Token == model.RefreshToken);
 
             if (token == null || !token.IsActive)
             {
@@ -403,10 +407,13 @@ namespace JwtAuthApi.Controllers
                 Roles = roles.ToList()
             });
         }
+
         [HttpPost("revoke")]
-        public async Task<IActionResult> RevokeToken([FromBody] string refreshToken)
+        public async Task<IActionResult> RevokeToken([FromBody] RevokeTokenDto model)
         {
-            var token = await _context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var token = await _context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == model.RefreshToken);
             if (token == null || !token.IsActive)
                 return NotFound(new { message = "Token not found or already revoked" });
             // Mark token as revoked
@@ -423,7 +430,6 @@ namespace JwtAuthApi.Controllers
             token.RevokedAt = DateTime.UtcNow;
             token.RevokedByIp = GetIpAddress();
             await _context.SaveChangesAsync();
-
         }
 
         private async Task SendNew2FACodeAsync(AppUser user)
