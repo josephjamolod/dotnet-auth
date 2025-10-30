@@ -10,6 +10,7 @@ using JwtAuthApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace JwtAuthApi.Controllers
 {
@@ -352,6 +353,51 @@ namespace JwtAuthApi.Controllers
             return Ok(new
             {
                 message = "Two-factor authentication has been disabled successfully"
+            });
+        }
+
+        /// Refresh expired access token using refresh token
+        [HttpPost("refresh")]
+        public async Task<IActionResult> RefreshToken([FromBody] string refreshToken)
+        {
+            // Find refresh token in database
+            var token = await _context.RefreshTokens
+                .Include(rt => rt.User)
+                .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+
+            if (token == null || !token.IsActive)
+            {
+                _logger.LogWarning("Invalid refresh token attempt");
+                return Unauthorized(new { message = "Invalid or expired refresh token" });
+            }
+
+            var user = token.User;
+            var roles = await _userManager.GetRolesAsync(user);
+
+            // Generate new tokens
+            var newAccessToken = _tokenService.GenerateAccessToken(user, roles);
+            var newRefreshToken = _tokenService.GenerateRefreshToken(GetIpAddress());
+
+            // Mark old token as revoked
+            token.RevokedAt = DateTime.UtcNow;
+            token.RevokedByIp = GetIpAddress();
+            token.ReplacedByToken = newRefreshToken.Token;
+
+            // Save new refresh token
+            newRefreshToken.UserId = user.Id;
+            _context.RefreshTokens.Add(newRefreshToken);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"Token refreshed for user '{user.UserName}'");
+
+            return Ok(new AuthResponseDto
+            {
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken.Token,
+                AccessTokenExpiration = DateTime.UtcNow.AddMinutes(15),
+                Username = user.UserName!,
+                Email = user.Email!,
+                Roles = roles.ToList()
             });
         }
 
