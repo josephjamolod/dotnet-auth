@@ -63,56 +63,30 @@ namespace JwtAuthApi.Interfaces
         public async Task SendEmailConfirmationAsync(string email, string confirmationLink)
         {
             var subject = "Confirm Your Email Address";
-            var body = $@"
-                
-                    Email Confirmation
-                    Thank you for registering! Please confirm your email address by clicking the button below:
-                    
-                        
-                            Confirm Email
-                        
-                    
-                    
-                        Or copy and paste this link into your browser:
-                    
-                    
-                        {confirmationLink}
-                    
-                    
-                        This link will expire in 24 hours. If you didn't create an account, please ignore this email.
-                    
-                
-            ";
+            var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", "EmailConfirmation.html");
+            var body = await File.ReadAllTextAsync(templatePath);
+            body = body.Replace("{{ConfirmationLink}}", confirmationLink);
 
             await SendEmailAsync(email, subject, body);
         }
         public async Task Send2FACodeAsync(string email, string code)
         {
             var subject = "Your Two-Factor Authentication Code";
-            var body = $@"
-                
-                    Two-Factor Authentication
-                    Your verification code is:
-                    
-                        
-                            {code}
-                        
-                    
-                    
-                        This code will expire in 5 minutes.
-                    
-                    
-                        Enter this code in the application to complete your login.
-                    
-                    
-                        If you didn't attempt to log in, please secure your account immediately by changing your password.
-                    
-                
-            ";
+            var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", "2FACode.html");
+            var body = await File.ReadAllTextAsync(templatePath);
+            body = body.Replace("{{code}}", code);
 
             await SendEmailAsync(email, subject, body);
         }
+        public async Task SendPasswordResetEmailAsync(string email, string resetLink)
+        {
+            var subject = "Reset Your Password";
+            var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", "ResetEmail.html");
+            var body = await File.ReadAllTextAsync(templatePath);
+            body = body.Replace("{{resetLink}}", resetLink);
 
+            await SendEmailAsync(email, subject, body);
+        }
     }
 
 

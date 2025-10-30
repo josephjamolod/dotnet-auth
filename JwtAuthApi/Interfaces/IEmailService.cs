@@ -11,5 +11,6 @@ namespace JwtAuthApi.Interfaces
         Task SendEmailConfirmationAsync(string email, string confirmationLink);
 
         Task Send2FACodeAsync(string email, string code);
+        Task SendPasswordResetEmailAsync(string email, string resetLink);
     }
 }
