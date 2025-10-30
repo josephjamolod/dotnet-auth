@@ -254,20 +254,22 @@ namespace JwtAuthApi.Controllers
 
             var user = await _userManager.FindByNameAsync(username);
             if (user == null || !user.TwoFactorEnabled)
-            {
                 return Ok(new { message = "If your account has 2FA enabled, a new code has been sent" });
-            }
 
             // Rate limiting: Wait 1 minute between requests
-            if (user.TwoFactorCodeExpiry.HasValue &&
-                user.TwoFactorCodeExpiry.Value > DateTime.UtcNow.AddMinutes(-1))
+            if (user.TwoFactorCodeLastSent.HasValue)
             {
-                var secondsRemaining = (int)(user.TwoFactorCodeExpiry.Value.AddMinutes(-4) - DateTime.UtcNow).TotalSeconds;
-                if (secondsRemaining > 0)
+                var timeSinceLastSent = DateTime.UtcNow - user.TwoFactorCodeLastSent.Value;
+                var waitTimeMinutes = 1; // Wait 1 minute between requests
+
+                if (timeSinceLastSent.TotalMinutes < waitTimeMinutes)
                 {
+                    var secondsRemaining = (int)((waitTimeMinutes * 60) - timeSinceLastSent.TotalSeconds);
+
                     return BadRequest(new
                     {
-                        message = $"Please wait {secondsRemaining} seconds before requesting a new code"
+                        message = $"Please wait {secondsRemaining} seconds before requesting a new code",
+                        canResendIn = secondsRemaining
                     });
                 }
             }
@@ -333,7 +335,9 @@ namespace JwtAuthApi.Controllers
             var code = GenerateRandom6DigitCode();
             user.TwoFactorCode = code;
             user.TwoFactorCodeExpiry = DateTime.UtcNow.AddMinutes(5);
+            user.TwoFactorCodeLastSent = DateTime.UtcNow;
             await _userManager.UpdateAsync(user);
+
             await _emailService.Send2FACodeAsync(user.Email!, code);
         }
         private async Task SendEmailConfirmationAsync(AppUser user)

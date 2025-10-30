@@ -13,6 +13,8 @@ namespace JwtAuthApi.Models
         // For Two-Factor Authentication
         public string? TwoFactorCode { get; set; }
         public DateTime? TwoFactorCodeExpiry { get; set; }
+        public DateTime? TwoFactorCodeLastSent { get; set; }
+        public DateTime? EmailConfirmationLastSent { get; set; }
 
         // Navigation property for refresh tokens
         public List<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
