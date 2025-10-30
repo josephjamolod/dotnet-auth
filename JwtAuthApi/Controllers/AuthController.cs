@@ -303,6 +303,30 @@ namespace JwtAuthApi.Controllers
             });
         }
 
+        [HttpPost("disable-2fa")]
+        [Authorize]
+        public async Task<IActionResult> Disable2FA()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var user = await _userManager.FindByIdAsync(userId!);
+            if (user == null)
+                return NotFound(new { message = "User cannot be found" });
+            if (!user.TwoFactorEnabled)
+                return BadRequest("2FA already disabled");
+            await _userManager.SetTwoFactorEnabledAsync(user, false);
+
+            // Clear any existing 2FA codes
+            user.TwoFactorCode = null;
+            user.TwoFactorCodeExpiry = null;
+            await _userManager.UpdateAsync(user);
+
+            _logger.LogInformation($"2FA disabled for user '{user.UserName}'");
+            return Ok(new
+            {
+                message = "Two-factor authentication has been disabled successfully"
+            });
+        }
+
         // HELPER METHODS
         private async Task SendNew2FACodeAsync(AppUser user)
         {
