@@ -121,10 +121,36 @@ namespace JwtAuthApi.Controllers
             if (user.EmailConfirmed)
                 return BadRequest(new { message = "Email is already confirmed" });
 
+            // ✅ RATE LIMITING: Allow resend only after 2 minutes
+            if (user.EmailConfirmationLastSent.HasValue)
+            {
+                var timeSinceLastSent = DateTime.UtcNow - user.EmailConfirmationLastSent.Value;
+                var waitTimeMinutes = 2;
+
+                if (timeSinceLastSent.TotalMinutes < waitTimeMinutes)
+                {
+                    var secondsRemaining = (int)((waitTimeMinutes * 60) - timeSinceLastSent.TotalSeconds);
+
+                    return BadRequest(new
+                    {
+                        message = $"Please wait {secondsRemaining} seconds before requesting another confirmation email",
+                        canResendIn = secondsRemaining
+                    });
+                }
+            }
             // Generate new confirmation token
             await SendEmailConfirmationAsync(user);
 
-            return Ok(new { message = "Confirmation email has been resent" });
+            // Update rate limiting timestamp
+            user.EmailConfirmationLastSent = DateTime.UtcNow;
+            await _userManager.UpdateAsync(user);
+
+
+            return Ok(new
+            {
+                message = "Confirmation email has been resent",
+                canResendAgainIn = "2 minutes"
+            });
         }
 
         [HttpPost("login")]
