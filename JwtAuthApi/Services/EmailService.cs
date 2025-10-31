@@ -78,8 +78,10 @@ namespace JwtAuthApi.Interfaces
 
             await SendEmailAsync(email, subject, body);
         }
-        public async Task SendPasswordResetEmailAsync(string email, string resetLink)
+        public async Task SendPasswordResetEmailAsync(string email, string resetToken)
         {
+            var frontendUrl = _config["Frontend:Url"];
+            var resetLink = $"{frontendUrl}/reset-password?email={Uri.EscapeDataString(email!)}&token={Uri.EscapeDataString(resetToken)}";
             var subject = "Reset Your Password";
             var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", "ResetEmail.html");
             var body = await File.ReadAllTextAsync(templatePath);

@@ -36,9 +36,8 @@ namespace JwtAuthApi.Controllers
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
+
             //check if username already exist
             var existingUser = await _userManager.FindByNameAsync(model.Username);
             if (existingUser != null)
@@ -388,7 +387,7 @@ namespace JwtAuthApi.Controllers
             var newRefreshToken = _tokenService.GenerateRefreshToken(GetIpAddress());
 
             // Mark old token as revoked
-            await RevokeOldToken(token);
+            await RevokeTokensAsync(new List<RefreshToken>() { token }, GetIpAddress());
 
             // Save new refresh token
             newRefreshToken.UserId = user.Id;
@@ -417,18 +416,85 @@ namespace JwtAuthApi.Controllers
             if (token == null || !token.IsActive)
                 return NotFound(new { message = "Token not found or already revoked" });
             // Mark token as revoked
-            await RevokeOldToken(token);
+            await RevokeTokensAsync(new List<RefreshToken>() { token }, GetIpAddress());
 
             _logger.LogInformation("Refresh token revoked successfully");
 
             return Ok(new { message = "Token revoked successfully" });
         }
 
-        // HELPER METHODS
-        private async ValueTask RevokeOldToken(RefreshToken token)
+        /// Request password reset
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto model)
         {
-            token.RevokedAt = DateTime.UtcNow;
-            token.RevokedByIp = GetIpAddress();
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null || !user.EmailConfirmed)
+                return Ok(new
+                {
+                    message = "If the email exists, a password reset link has been sent"
+                });
+            // Generate password reset token
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            await _emailService.SendPasswordResetEmailAsync(user.Email!, resetToken);
+            _logger.LogInformation($"Password reset requested for email: {model.Email}");
+
+            return Ok(new
+            {
+                message = "  password reset link has been sent"
+            });
+        }
+
+        /// Reset password with token
+        /// 
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+                return BadRequest(new { message = "Invalid request" });
+
+            var result = await _userManager.ResetPasswordAsync(user, model.Token, "newpassword");
+
+            if (result.Succeeded)
+            {
+                // Revoke all active refresh tokens for security
+                var tokens = await _context.RefreshTokens
+                    .Where(rt => rt.UserId == user.Id && rt.IsActive)
+                    .ToListAsync();
+
+                await RevokeTokensAsync(tokens, "PasswordReset");
+
+                _logger.LogInformation($"Password reset successful for user '{user.UserName}'");
+
+                return Ok(new
+                {
+                    message = "Password has been reset successfully. Please log in with your new password."
+                });
+            }
+
+            return BadRequest(new
+            {
+                message = "Password reset failed. The link may be expired or invalid.",
+                errors = result.Errors
+            });
+        }
+
+        // HELPER METHODS
+        private async Task RevokeTokensAsync(List<RefreshToken> tokens, string reason)
+        {
+            if (tokens == null || !tokens.Any())
+                return;
+
+            foreach (var token in tokens)
+            {
+                token.RevokedAt = DateTime.UtcNow;
+                token.RevokedByIp = reason;  // Clear reason for auditing
+            }
+
             await _context.SaveChangesAsync();
         }
 
@@ -444,7 +510,6 @@ namespace JwtAuthApi.Controllers
         }
         private async Task SendEmailConfirmationAsync(AppUser user)
         {
-
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             var confirmationLink = Url.Action(
                 nameof(ConfirmEmail),
@@ -454,7 +519,6 @@ namespace JwtAuthApi.Controllers
                 );
 
             await _emailService.SendEmailConfirmationAsync(user.Email!, confirmationLink!);
-
         }
         private string GenerateRandom6DigitCode()
         {
