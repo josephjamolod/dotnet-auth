@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using JwtAuthApi.Services.Models;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
@@ -9,6 +10,7 @@ using MimeKit;
 
 namespace JwtAuthApi.Interfaces
 {
+
     public class EmailService : IEmailService
     {
         private readonly IConfiguration _config;
@@ -19,7 +21,7 @@ namespace JwtAuthApi.Interfaces
             _config = config;
         }
 
-        public async Task SendEmailAsync(string toEmail, string subject, string body)
+        public async Task SendEmailAsync(EmailProps email)
         {
             try
             {
@@ -30,10 +32,10 @@ namespace JwtAuthApi.Interfaces
                     _config["Email:FromAddress"]
                 ));
 
-                emailMessage.To.Add(new MailboxAddress("", toEmail));
-                emailMessage.Subject = subject;
+                emailMessage.To.Add(new MailboxAddress("", email.ToEmail));
+                emailMessage.Subject = email.Subject;
 
-                var bodyBuilder = new BodyBuilder { HtmlBody = body };
+                var bodyBuilder = new BodyBuilder { HtmlBody = email.Body };
                 emailMessage.Body = bodyBuilder.ToMessageBody();
 
                 using var client = new SmtpClient();
@@ -52,7 +54,7 @@ namespace JwtAuthApi.Interfaces
                 await client.SendAsync(emailMessage);
                 await client.DisconnectAsync(true);
 
-                _logger.LogInformation($"Email sent successfully to {toEmail}");
+                _logger.LogInformation($"Email sent successfully to {email.ToEmail}");
             }
             catch (Exception ex)
             {
@@ -62,32 +64,47 @@ namespace JwtAuthApi.Interfaces
         }
         public async Task SendEmailConfirmationAsync(string email, string confirmationLink)
         {
-            var subject = "Confirm Your Email Address";
-            var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", "EmailConfirmation.html");
-            var body = await File.ReadAllTextAsync(templatePath);
-            body = body.Replace("{{ConfirmationLink}}", confirmationLink);
-
-            await SendEmailAsync(email, subject, body);
+            var emailToSend = new EmailProps()
+            {
+                Subject = "Confirm Your Email Address",
+                Body = await BodyConstructor("EmailConfirmation.html", confirmationLink),
+                ToEmail = email
+            };
+            await SendEmailAsync(emailToSend);
         }
         public async Task Send2FACodeAsync(string email, string code)
         {
-            var subject = "Your Two-Factor Authentication Code";
-            var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", "2FACode.html");
-            var body = await File.ReadAllTextAsync(templatePath);
-            body = body.Replace("{{code}}", code);
+            var emailToSend = new EmailProps()
+            {
+                Subject = "Your Two-Factor Authentication Code",
+                Body = await BodyConstructor("EmailConfirmation.html", code),
+                ToEmail = email
+            };
 
-            await SendEmailAsync(email, subject, body);
+            await SendEmailAsync(emailToSend);
         }
         public async Task SendPasswordResetEmailAsync(string email, string resetToken)
         {
             var frontendUrl = _config["Frontend:Url"];
             var resetLink = $"{frontendUrl}/reset-password?email={Uri.EscapeDataString(email!)}&token={Uri.EscapeDataString(resetToken)}";
-            var subject = "Reset Your Password";
-            var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", "ResetEmail.html");
-            var body = await File.ReadAllTextAsync(templatePath);
-            body = body.Replace("{{resetLink}}", resetLink);
+            var emailToSend = new EmailProps()
+            {
+                Subject = "Reset Your Password",
+                Body = await BodyConstructor("EmailConfirmation.html", resetLink),
+                ToEmail = email
+            };
 
-            await SendEmailAsync(email, subject, body);
+            await SendEmailAsync(emailToSend);
+
+        }
+
+        //HELPER
+        private static async Task<string> BodyConstructor(string templateFile, string link)
+        {
+            var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", templateFile);
+            var body = await File.ReadAllTextAsync(templatePath);
+            body = body.Replace("{{replaceable}}", link);
+            return body;
         }
     }
 

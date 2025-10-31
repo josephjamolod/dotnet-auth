@@ -486,7 +486,7 @@ namespace JwtAuthApi.Controllers
         // HELPER METHODS
         private async Task RevokeTokensAsync(List<RefreshToken> tokens, string reason)
         {
-            if (tokens == null || !tokens.Any())
+            if (tokens == null || tokens.Count == 0)
                 return;
 
             foreach (var token in tokens)
@@ -520,7 +520,7 @@ namespace JwtAuthApi.Controllers
 
             await _emailService.SendEmailConfirmationAsync(user.Email!, confirmationLink!);
         }
-        private string GenerateRandom6DigitCode()
+        private static string GenerateRandom6DigitCode()
         {
             var random = new Random();
             return random.Next(100000, 999999).ToString();
@@ -529,8 +529,8 @@ namespace JwtAuthApi.Controllers
         private string GetIpAddress()
         {
             // Check for forwarded IP (if behind proxy/load balancer)
-            if (Request.Headers.ContainsKey("X-Forwarded-For"))
-                return Request.Headers["X-Forwarded-For"]!;
+            if (Request.Headers.TryGetValue("X-Forwarded-For", out Microsoft.Extensions.Primitives.StringValues value))
+                return value!;
 
             return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
         }
