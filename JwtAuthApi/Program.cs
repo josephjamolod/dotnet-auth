@@ -3,6 +3,7 @@ using System.Text;
 using JwtAuthApi.Data;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Models;
+using JwtAuthApi.Repository;
 using JwtAuthApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -116,6 +117,7 @@ builder.Services.AddAuthentication(options =>
 // 4. REGISTER SERVICES
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
 // 5. ADD CONTROLLERS
 builder.Services.AddControllers();

@@ -23,13 +23,22 @@ namespace JwtAuthApi.Controllers
         private readonly IEmailService _emailService;
         private readonly ITokenService _tokenService;
         private readonly ApplicationDBContext _context;
-        public AuthController(UserManager<AppUser> userManager, ILogger<AuthController> logger, IEmailService emailService, ITokenService tokenService, ApplicationDBContext context)
+        private readonly IAuthRepository _authRepo;
+        public AuthController(
+            UserManager<AppUser> userManager,
+            ILogger<AuthController> logger,
+            IEmailService emailService,
+            ITokenService tokenService,
+            ApplicationDBContext context,
+            IAuthRepository authRepo
+            )
         {
             _userManager = userManager;
             _logger = logger;
             _emailService = emailService;
             _tokenService = tokenService;
             _context = context;
+            _authRepo = authRepo;
 
         }
         [HttpPost("register")]
@@ -38,42 +47,16 @@ namespace JwtAuthApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            //check if username already exist
-            var existingUser = await _userManager.FindByNameAsync(model.Username);
-            if (existingUser != null)
+            var result = await _authRepo.CreateUserAsync(model);
+            if (!result.IsSuccess)
             {
-                return BadRequest(new { message = "User already exist!" });
+                return BadRequest(new { message = result.Error });
             }
-
-            //check if email already exist
-            existingUser = await _userManager.FindByEmailAsync(model.Email);
-            if (existingUser != null)
-            {
-                return BadRequest(new { message = "Email already exist!" });
-            }
-
-            //create AppUser instance
-            var user = new AppUser()
-            {
-                UserName = model.Username,
-                Email = model.Email,
-                FirstName = model.FirstName,
-                LastName = model.LastName
-            };
-
-            var result = await _userManager.CreateAsync(user, model.Password);
-            if (!result.Succeeded)
-            {
-                return BadRequest(result.Errors);
-
-            }
-            await _userManager.AddToRoleAsync(user, "User");
 
             //generate email confirmation token
-            await SendEmailConfirmationAsync(user);
+            await SendEmailConfirmationAsync(result.Value!);
 
             _logger.LogInformation($"User '{model.Username}' registered successfully");
-
             return Ok(new
             {
                 message = "Registration successful! Please check your email to confirm your account."
@@ -81,16 +64,16 @@ namespace JwtAuthApi.Controllers
         }
 
         [HttpGet("confirm-email")]
-        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        public async Task<IActionResult> ConfirmEmail(ConfirmEmailDto model)
         {
-            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
-                return BadRequest(new { message = "Invalid confirmation link" });
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            var user = await _userManager.FindByIdAsync(userId);
+            var user = await _userManager.FindByIdAsync(model.UserId);
             if (user == null)
                 return BadRequest(new { message = "User not found" });
 
-            var result = await _userManager.ConfirmEmailAsync(user, token);
+            var result = await _userManager.ConfirmEmailAsync(user, model.Token);
 
             if (result.Succeeded)
             {
