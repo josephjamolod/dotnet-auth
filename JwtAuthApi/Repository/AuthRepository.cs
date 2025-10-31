@@ -55,10 +55,38 @@ namespace JwtAuthApi.Repository
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
             return OperationResult<object, string>.Failure(errors);
         }
+        public async Task<OperationResult<AppUser, string>> ResendEmailConfirmationAsync(ResendConfirmationDto model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+
+            if (user == null)
+                return OperationResult<AppUser, string>.Failure("If the email exists, a confirmation link has been sent");
+
+            if (user.EmailConfirmed)
+                return OperationResult<AppUser, string>.Failure("Email is already confirmed");
+
+            // ✅ RATE LIMITING: Allow resend only after 2 minutes
+            if (user.EmailConfirmationLastSent.HasValue)
+            {
+                var timeSinceLastSent = DateTime.UtcNow - user.EmailConfirmationLastSent.Value;
+                var waitTimeMinutes = 2;
+
+                if (timeSinceLastSent.TotalMinutes < waitTimeMinutes)
+                {
+                    var secondsRemaining = (int)((waitTimeMinutes * 60) - timeSinceLastSent.TotalSeconds);
+
+                    return OperationResult<AppUser, string>.Failure(
+                   $"Please wait {secondsRemaining} seconds before requesting another confirmation email"
+                     );
+                }
+            }
+            return OperationResult<AppUser, string>.Success(user);
+        }
 
         private async Task<bool> UsernameExistsAsync(string username)
            => await _userManager.FindByNameAsync(username) != null;
         private async Task<bool> EmailExistsAsync(string email)
             => await _userManager.FindByEmailAsync(email) != null;
+
     }
 }

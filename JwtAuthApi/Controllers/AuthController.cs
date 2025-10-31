@@ -83,41 +83,18 @@ namespace JwtAuthApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+            AppUser user;
 
-
-            var user = await _userManager.FindByEmailAsync(model.Email);
-
-            // Don't reveal if email exists (security)
-            if (user == null)
-                return Ok(new { message = "If the email exists, a confirmation link has been sent" });
-
-            if (user.EmailConfirmed)
-                return BadRequest(new { message = "Email is already confirmed" });
-
-            // ✅ RATE LIMITING: Allow resend only after 2 minutes
-            if (user.EmailConfirmationLastSent.HasValue)
-            {
-                var timeSinceLastSent = DateTime.UtcNow - user.EmailConfirmationLastSent.Value;
-                var waitTimeMinutes = 2;
-
-                if (timeSinceLastSent.TotalMinutes < waitTimeMinutes)
-                {
-                    var secondsRemaining = (int)((waitTimeMinutes * 60) - timeSinceLastSent.TotalSeconds);
-
-                    return BadRequest(new
-                    {
-                        message = $"Please wait {secondsRemaining} seconds before requesting another confirmation email",
-                        canResendIn = secondsRemaining
-                    });
-                }
-            }
+            var result = await _authRepo.ResendEmailConfirmationAsync(model);
+            if (!result.IsSuccess)
+                return BadRequest(new { message = result.Error });
+            user = result.Value!;
             // Generate new confirmation token
             await SendEmailConfirmationAsync(user);
 
             // Update rate limiting timestamp
             user.EmailConfirmationLastSent = DateTime.UtcNow;
             await _userManager.UpdateAsync(user);
-
 
             return Ok(new
             {
