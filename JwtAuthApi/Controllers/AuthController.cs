@@ -64,31 +64,17 @@ namespace JwtAuthApi.Controllers
         }
 
         [HttpGet("confirm-email")]
-        public async Task<IActionResult> ConfirmEmail(ConfirmEmailDto model)
+        public async Task<IActionResult> ConfirmEmail([FromQuery] ConfirmEmailDto model)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var user = await _userManager.FindByIdAsync(model.UserId);
-            if (user == null)
-                return BadRequest(new { message = "User not found" });
+            var result = await _authRepo.ConfirmEmailAsync(model);
 
-            var result = await _userManager.ConfirmEmailAsync(user, model.Token);
+            if (result.IsSuccess)
+                return Ok(result.Value);
 
-            if (result.Succeeded)
-            {
-                _logger.LogInformation($"Email confirmed for user '{user.UserName}'");
-                return Ok(new
-                {
-                    message = "Email confirmed successfully! You can now log in to your account."
-                });
-            }
-
-            return BadRequest(new
-            {
-                message = "Email confirmation failed. The link may be expired or invalid.",
-                errors = result.Errors
-            });
+            return BadRequest(new { message = result.Error });
         }
 
         // Resend email confirmation link

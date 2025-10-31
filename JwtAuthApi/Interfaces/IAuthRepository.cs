@@ -11,5 +11,6 @@ namespace JwtAuthApi.Interfaces
     public interface IAuthRepository
     {
         Task<OperationResult<AppUser, string>> CreateUserAsync(RegisterDto model);
+        Task<OperationResult<object, string>> ConfirmEmailAsync(ConfirmEmailDto model);
     }
 }

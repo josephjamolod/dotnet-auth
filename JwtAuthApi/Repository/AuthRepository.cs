@@ -39,6 +39,22 @@ namespace JwtAuthApi.Repository
             await _userManager.AddToRoleAsync(user, "User");
             return OperationResult<AppUser, string>.Success(user);
         }
+        public async Task<OperationResult<object, string>> ConfirmEmailAsync(ConfirmEmailDto model)
+        {
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null)
+                return OperationResult<object, string>.Failure("User Not found");
+            var result = await _userManager.ConfirmEmailAsync(user, model.Token);
+
+            if (result.Succeeded)
+                return OperationResult<object, string>.Success(new
+                {
+                    message = "Email confirmed successfully! You can now log in to your account."
+                });
+
+            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+            return OperationResult<object, string>.Failure(errors);
+        }
 
         private async Task<bool> UsernameExistsAsync(string username)
            => await _userManager.FindByNameAsync(username) != null;
