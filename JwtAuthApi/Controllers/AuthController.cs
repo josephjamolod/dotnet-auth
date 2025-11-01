@@ -207,23 +207,31 @@ namespace JwtAuthApi.Controllers
         [Authorize]
         public async Task<IActionResult> Enable2FA()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized(new { message = "Invalid authentication token" });
-
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-                return NotFound(new { message = "User not found" });
-            if (user.TwoFactorEnabled)
-
-                return BadRequest(new { message = "2FA already enabled" });
-            await _userManager.SetTwoFactorEnabledAsync(user, true);
-            _logger.LogInformation($"2FA enabled for user '{user.UserName}'");
-
-            return Ok(new
+            try
             {
-                message = "Two-factor authentication has been enabled successfully"
-            });
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "Invalid authentication token" });
+
+                var result = await _authRepo.Enable2FAAsync(userId);
+                if (!result.IsSuccess)
+                    return BadRequest(new { message = result.Error });
+                var user = result.Value;
+
+                if (user == null)
+                    return NotFound(new { message = "User not found" });
+
+                _logger.LogInformation($"2FA enabled for user '{user.UserName}'");
+
+                return Ok(new
+                {
+                    message = "Two-factor authentication has been enabled successfully"
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
         }
 
         [HttpPost("disable-2fa")]

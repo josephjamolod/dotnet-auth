@@ -110,9 +110,8 @@ namespace JwtAuthApi.Repository
             if (user.TwoFactorCode != code ||
                 user.TwoFactorCodeExpiry == null ||
                 user.TwoFactorCodeExpiry < DateTime.UtcNow)
-            {
                 return OperationResult<AppUser, string>.Failure("Invalid or expired verification code. Please request a new code.");
-            }
+
             // Clear 2FA code after successful verification
             user.TwoFactorCode = null;
             user.TwoFactorCodeExpiry = null;
@@ -138,6 +137,21 @@ namespace JwtAuthApi.Repository
                     return OperationResult<AppUser?, string>.Failure($"Please wait {secondsRemaining} seconds before requesting a new code");
                 }
             }
+            return OperationResult<AppUser?, string>.Success(user);
+        }
+        public async Task<OperationResult<AppUser?, string>> Enable2FAAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return OperationResult<AppUser?, string>.Success(null);
+            //  return NotFound(new { message = "User not found" });
+
+            if (user.TwoFactorEnabled)
+                return OperationResult<AppUser?, string>.Failure("2FA already enabled");
+            // return BadRequest(new { message = "2FA already enabled" });
+
+            await _userManager.SetTwoFactorEnabledAsync(user, true);
             return OperationResult<AppUser?, string>.Success(user);
         }
 
