@@ -8,6 +8,7 @@ using JwtAuthApi.Interfaces;
 using JwtAuthApi.Models;
 using JwtAuthApi.Repository.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace JwtAuthApi.Repository
 {
@@ -182,7 +183,7 @@ namespace JwtAuthApi.Repository
             var refreshToken = _tokenService.GenerateRefreshToken(ipAddress);
 
             if (token != null)
-                await RevokeTokensAsync([token], ipAddress);
+                await TokenRevokerAsync([token], ipAddress);
 
             // Save refresh token to database
             refreshToken.UserId = user.Id;
@@ -201,13 +202,44 @@ namespace JwtAuthApi.Repository
             };
         }
 
+        public async Task<RefreshToken?> RevokeTokenAsync(string refreshToken, string ipAddress)
+        {
+            var token = await _context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+            if (token == null || !token.IsActive)
+                return null;
+            // Mark token as revoked
+            await TokenRevokerAsync([token], ipAddress);
+            return token;
+        }
+
+        public async Task<OperationResult<string, string>> ResetPasswordAsync(ResetPasswordDto model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+                return OperationResult<string, string>.Failure("Invalid request");
+
+            var result = await _userManager.ResetPasswordAsync(user, model.Token, "newpassword");
+            if (result.Succeeded)
+            {
+                // Revoke all active refresh tokens for security
+                var tokens = await _context.RefreshTokens
+                    .Where(rt => rt.UserId == user.Id && rt.IsActive)
+                    .ToListAsync();
+
+                await TokenRevokerAsync(tokens, "PasswordReset");
+
+                return OperationResult<string, string>.Success("Password has been reset successfully. Please log in with your new password.");
+            }
+            return OperationResult<string, string>.Failure("Password reset failed. The link may be expired or invalid.");
+        }
+
         //HELPERS
         private async Task<bool> UsernameExistsAsync(string username)
            => await _userManager.FindByNameAsync(username) != null;
         private async Task<bool> EmailExistsAsync(string email)
             => await _userManager.FindByEmailAsync(email) != null;
 
-        private async Task RevokeTokensAsync(List<RefreshToken> tokens, string reason)
+        private async Task TokenRevokerAsync(List<RefreshToken> tokens, string reason)
         {
             if (tokens == null || tokens.Count == 0)
                 return;

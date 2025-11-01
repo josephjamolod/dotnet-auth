@@ -48,10 +48,9 @@ namespace JwtAuthApi.Controllers
                 return BadRequest(ModelState);
 
             var result = await _authRepo.CreateUserAsync(model);
+
             if (!result.IsSuccess)
-            {
                 return BadRequest(new { message = result.Error });
-            }
 
             //generate email confirmation token
             await SendEmailConfirmationAsync(result.Value!);
@@ -133,7 +132,7 @@ namespace JwtAuthApi.Controllers
                     });
                 }
 
-                var authResponse = await SaveRefreshToken(user);
+                var authResponse = await _authRepo.SaveRefreshToken(user, GetIpAddress());
 
                 _logger.LogInformation($"User '{model.UserName}' logged in successfully from {GetIpAddress()}");
 
@@ -162,7 +161,7 @@ namespace JwtAuthApi.Controllers
                 var user = result.Value!;
 
                 // Generate tokens
-                var authResponse = await SaveRefreshToken(user);
+                var authResponse = await _authRepo.SaveRefreshToken(user, GetIpAddress());
 
                 _logger.LogInformation($"2FA verification successful for user '{model.Username}'");
 
@@ -290,7 +289,7 @@ namespace JwtAuthApi.Controllers
                 var user = token.User;
 
                 // Generate new tokens
-                var authResponse = await SaveRefreshToken(user, token);
+                var authResponse = await _authRepo.SaveRefreshToken(user, GetIpAddress(), token);
 
                 _logger.LogInformation($"Token refreshed for user '{user.UserName}'");
 
@@ -308,15 +307,19 @@ namespace JwtAuthApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            var token = await _context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == model.RefreshToken);
-            if (token == null || !token.IsActive)
-                return NotFound(new { message = "Token not found or already revoked" });
-            // Mark token as revoked
-            await RevokeTokensAsync(new List<RefreshToken>() { token }, GetIpAddress());
+            try
+            {
+                var token = await _authRepo.RevokeTokenAsync(model.RefreshToken, GetIpAddress());
+                if (token == null || !token.IsActive)
+                    //     return NotFound(new { message = "Token not found or already revoked" });
+                    _logger.LogInformation("Refresh token revoked successfully");
 
-            _logger.LogInformation("Refresh token revoked successfully");
-
-            return Ok(new { message = "Token revoked successfully" });
+                return Ok(new { message = "Token revoked successfully" });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
         }
 
         /// Request password reset
@@ -325,6 +328,7 @@ namespace JwtAuthApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+
             var user = await _userManager.FindByEmailAsync(model.Email);
             if (user == null || !user.EmailConfirmed)
                 return Ok(new
@@ -349,75 +353,24 @@ namespace JwtAuthApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user == null)
-                return BadRequest(new { message = "Invalid request" });
-
-            var result = await _userManager.ResetPasswordAsync(user, model.Token, "newpassword");
-
-            if (result.Succeeded)
+            try
             {
-                // Revoke all active refresh tokens for security
-                var tokens = await _context.RefreshTokens
-                    .Where(rt => rt.UserId == user.Id && rt.IsActive)
-                    .ToListAsync();
-
-                await RevokeTokensAsync(tokens, "PasswordReset");
-
-                _logger.LogInformation($"Password reset successful for user '{user.UserName}'");
+                var result = await _authRepo.ResetPasswordAsync(model);
+                if (!result.IsSuccess)
+                    return BadRequest(new { message = result.Error });
 
                 return Ok(new
                 {
-                    message = "Password has been reset successfully. Please log in with your new password."
+                    message = result.Value
                 });
             }
-
-            return BadRequest(new
+            catch (Exception)
             {
-                message = "Password reset failed. The link may be expired or invalid.",
-                errors = result.Errors
-            });
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
         }
 
         // HELPER METHODS
-        private async Task<AuthResponseDto> SaveRefreshToken(AppUser user, RefreshToken? token = default)
-        {
-            var roles = await _userManager.GetRolesAsync(user);
-            var accessToken = _tokenService.GenerateAccessToken(user, roles);
-            var refreshToken = _tokenService.GenerateRefreshToken(GetIpAddress());
-
-            if (token != null)
-                await RevokeTokensAsync([token], GetIpAddress());
-
-            // Save refresh token to database
-            refreshToken.UserId = user.Id;
-            _context.RefreshTokens.Add(refreshToken);
-            await _context.SaveChangesAsync();
-
-            return new AuthResponseDto
-            {
-                AccessToken = accessToken,
-                RefreshToken = refreshToken.Token,
-                AccessTokenExpiration = DateTime.UtcNow.AddMinutes(15),
-                Username = user.UserName!,
-                Email = user.Email!,
-                Roles = [.. roles],
-                RequiresTwoFactor = false
-            };
-        }
-        private async Task RevokeTokensAsync(List<RefreshToken> tokens, string reason)
-        {
-            if (tokens == null || tokens.Count == 0)
-                return;
-
-            foreach (var token in tokens)
-            {
-                token.RevokedAt = DateTime.UtcNow;
-                token.RevokedByIp = reason;  // Clear reason for auditing
-            }
-
-            await _context.SaveChangesAsync();
-        }
 
         private async Task SendNew2FACodeAsync(AppUser user)
         {
