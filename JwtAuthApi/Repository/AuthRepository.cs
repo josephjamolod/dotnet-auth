@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using JwtAuthApi.Data;
 using JwtAuthApi.Dtos;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Models;
@@ -14,9 +15,13 @@ namespace JwtAuthApi.Repository
 
     {
         private readonly UserManager<AppUser> _userManager;
-        public AuthRepository(UserManager<AppUser> userManager)
+        private readonly ApplicationDBContext _context;
+        private readonly ITokenService _tokenService;
+        public AuthRepository(UserManager<AppUser> userManager, ApplicationDBContext context, ITokenService tokenService)
         {
             _userManager = userManager;
+            _context = context;
+            _tokenService = tokenService;
         }
 
         public async Task<OperationResult<AppUser, string>> CreateUserAsync(RegisterDto model)
@@ -145,11 +150,9 @@ namespace JwtAuthApi.Repository
 
             if (user == null)
                 return OperationResult<AppUser?, string>.Success(null);
-            //  return NotFound(new { message = "User not found" });
 
             if (user.TwoFactorEnabled)
                 return OperationResult<AppUser?, string>.Failure("2FA already enabled");
-            // return BadRequest(new { message = "2FA already enabled" });
 
             await _userManager.SetTwoFactorEnabledAsync(user, true);
             return OperationResult<AppUser?, string>.Success(user);
@@ -159,10 +162,10 @@ namespace JwtAuthApi.Repository
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
                 return OperationResult<AppUser?, string>.Success(null);
-            // return NotFound(new { message = "User cannot be found" });
+
             if (!user.TwoFactorEnabled)
                 return OperationResult<AppUser?, string>.Failure("2FA already disabled");
-            // return BadRequest("2FA already disabled");
+
             await _userManager.SetTwoFactorEnabledAsync(user, false);
 
             // Clear any existing 2FA codes
@@ -172,6 +175,31 @@ namespace JwtAuthApi.Repository
             return OperationResult<AppUser?, string>.Success(user);
         }
 
+        public async Task<AuthResponseDto> SaveRefreshToken(AppUser user, string ipAddress, RefreshToken? token = default)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            var accessToken = _tokenService.GenerateAccessToken(user, roles);
+            var refreshToken = _tokenService.GenerateRefreshToken(ipAddress);
+
+            if (token != null)
+                await RevokeTokensAsync([token], ipAddress);
+
+            // Save refresh token to database
+            refreshToken.UserId = user.Id;
+            _context.RefreshTokens.Add(refreshToken);
+            await _context.SaveChangesAsync();
+
+            return new AuthResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken.Token,
+                AccessTokenExpiration = DateTime.UtcNow.AddMinutes(15),
+                Username = user.UserName!,
+                Email = user.Email!,
+                Roles = [.. roles],
+                RequiresTwoFactor = false
+            };
+        }
 
         //HELPERS
         private async Task<bool> UsernameExistsAsync(string username)
@@ -179,5 +207,18 @@ namespace JwtAuthApi.Repository
         private async Task<bool> EmailExistsAsync(string email)
             => await _userManager.FindByEmailAsync(email) != null;
 
+        private async Task RevokeTokensAsync(List<RefreshToken> tokens, string reason)
+        {
+            if (tokens == null || tokens.Count == 0)
+                return;
+
+            foreach (var token in tokens)
+            {
+                token.RevokedAt = DateTime.UtcNow;
+                token.RevokedByIp = reason;  // Clear reason for auditing
+            }
+
+            await _context.SaveChangesAsync();
+        }
     }
 }

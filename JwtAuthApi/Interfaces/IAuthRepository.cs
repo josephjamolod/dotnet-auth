@@ -18,5 +18,6 @@ namespace JwtAuthApi.Interfaces
         Task<OperationResult<AppUser?, string>> Resend2FACodeAsync(string username);
         Task<OperationResult<AppUser?, string>> Enable2FAAsync(string userId);
         Task<OperationResult<AppUser?, string>> Disable2FAAsync(string userId);
+        Task<AuthResponseDto> SaveRefreshToken(AppUser user, string ipAddress, RefreshToken? token = default);
     }
 }
