@@ -99,6 +99,27 @@ namespace JwtAuthApi.Repository
             return OperationResult<AppUser, string>.Success(user);
         }
 
+        public async Task<OperationResult<AppUser, string>> Verify2FAAsync(string username, string code)
+        {
+            var user = await _userManager.FindByNameAsync(username);
+            if (user == null)
+            {
+                return OperationResult<AppUser, string>.Failure("Invalid verification request");
+            }
+            // Validate 2FA code
+            if (user.TwoFactorCode != code ||
+                user.TwoFactorCodeExpiry == null ||
+                user.TwoFactorCodeExpiry < DateTime.UtcNow)
+            {
+                return OperationResult<AppUser, string>.Failure("Invalid or expired verification code. Please request a new code.");
+            }
+            // Clear 2FA code after successful verification
+            user.TwoFactorCode = null;
+            user.TwoFactorCodeExpiry = null;
+            await _userManager.UpdateAsync(user);
+            return OperationResult<AppUser, string>.Success(user);
+        }
+
         private async Task<bool> UsernameExistsAsync(string username)
            => await _userManager.FindByNameAsync(username) != null;
         private async Task<bool> EmailExistsAsync(string email)

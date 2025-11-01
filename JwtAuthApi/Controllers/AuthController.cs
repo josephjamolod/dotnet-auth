@@ -151,27 +151,11 @@ namespace JwtAuthApi.Controllers
                 return BadRequest(ModelState);
             try
             {
-                var user = await _userManager.FindByNameAsync(model.Username);
-                if (user == null)
-                {
-                    _logger.LogWarning($"2FA verification failed - user not found: {model.Username}");
-                    return Unauthorized(new { message = "Invalid verification request" });
-                }
-                // Validate 2FA code
-                if (user.TwoFactorCode != model.Code ||
-                    user.TwoFactorCodeExpiry == null ||
-                    user.TwoFactorCodeExpiry < DateTime.UtcNow)
-                {
-                    _logger.LogWarning($"Invalid or expired 2FA code for user '{model.Username}'");
-                    return Unauthorized(new
-                    {
-                        message = "Invalid or expired verification code. Please request a new code."
-                    });
-                }
-                // Clear 2FA code after successful verification
-                user.TwoFactorCode = null;
-                user.TwoFactorCodeExpiry = null;
-                await _userManager.UpdateAsync(user);
+                var result = await _authRepo.Verify2FAAsync(model.Username, model.Code);
+                if (!result.IsSuccess)
+                    return Unauthorized(new { message = result.Error });
+
+                var user = result.Value!;
 
                 // Generate tokens
                 var authResponse = await SaveRefreshToken(user);
