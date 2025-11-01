@@ -55,15 +55,15 @@ namespace JwtAuthApi.Repository
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
             return OperationResult<object, string>.Failure(errors);
         }
-        public async Task<OperationResult<AppUser, string>> ResendEmailConfirmationAsync(ResendConfirmationDto model)
+        public async Task<OperationResult<AppUser?, string>> ResendEmailConfirmationAsync(ResendConfirmationDto model)
         {
             var user = await _userManager.FindByEmailAsync(model.Email);
 
             if (user == null)
-                return OperationResult<AppUser, string>.Failure("If the email exists, a confirmation link has been sent");
+                return OperationResult<AppUser?, string>.Success(null);
 
             if (user.EmailConfirmed)
-                return OperationResult<AppUser, string>.Failure("Email is already confirmed");
+                return OperationResult<AppUser?, string>.Failure("Email is already confirmed");
 
             // ✅ RATE LIMITING: Allow resend only after 2 minutes
             if (user.EmailConfirmationLastSent.HasValue)
@@ -75,12 +75,12 @@ namespace JwtAuthApi.Repository
                 {
                     var secondsRemaining = (int)((waitTimeMinutes * 60) - timeSinceLastSent.TotalSeconds);
 
-                    return OperationResult<AppUser, string>.Failure(
+                    return OperationResult<AppUser?, string>.Failure(
                    $"Please wait {secondsRemaining} seconds before requesting another confirmation email"
                      );
                 }
             }
-            return OperationResult<AppUser, string>.Success(user);
+            return OperationResult<AppUser?, string>.Success(user);
         }
 
         public async Task<OperationResult<AppUser, string>> LoginAsync(LoginDto model)

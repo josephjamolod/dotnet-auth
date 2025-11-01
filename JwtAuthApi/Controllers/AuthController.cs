@@ -83,12 +83,16 @@ namespace JwtAuthApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            AppUser user;
 
             var result = await _authRepo.ResendEmailConfirmationAsync(model);
             if (!result.IsSuccess)
                 return BadRequest(new { message = result.Error });
-            user = result.Value!;
+
+            var user = result.Value;
+
+            if (user == null)
+                return Ok(new { messsage = "If the email exists, a confirmation link has been sent" });
+
             // Generate new confirmation token
             await SendEmailConfirmationAsync(user);
 
@@ -241,6 +245,7 @@ namespace JwtAuthApi.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(new { message = "Invalid authentication token" });
+
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
                 return NotFound(new { message = "User cannot be found" });
