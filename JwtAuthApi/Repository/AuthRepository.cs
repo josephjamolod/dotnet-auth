@@ -120,6 +120,27 @@ namespace JwtAuthApi.Repository
             return OperationResult<AppUser, string>.Success(user);
         }
 
+        public async Task<OperationResult<AppUser?, string>> Resend2FACodeAsync(string username)
+        {
+            var user = await _userManager.FindByNameAsync(username);
+            if (user == null || !user.TwoFactorEnabled)
+                return OperationResult<AppUser?, string>.Success(null);
+
+            // Rate limiting: Wait 1 minute between requests
+            if (user.TwoFactorCodeLastSent.HasValue)
+            {
+                var timeSinceLastSent = DateTime.UtcNow - user.TwoFactorCodeLastSent.Value;
+                var waitTimeMinutes = 1; // Wait 1 minute between requests
+
+                if (timeSinceLastSent.TotalMinutes < waitTimeMinutes)
+                {
+                    var secondsRemaining = (int)((waitTimeMinutes * 60) - timeSinceLastSent.TotalSeconds);
+                    return OperationResult<AppUser?, string>.Failure($"Please wait {secondsRemaining} seconds before requesting a new code");
+                }
+            }
+            return OperationResult<AppUser?, string>.Success(user);
+        }
+
         private async Task<bool> UsernameExistsAsync(string username)
            => await _userManager.FindByNameAsync(username) != null;
         private async Task<bool> EmailExistsAsync(string email)

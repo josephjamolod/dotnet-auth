@@ -177,38 +177,30 @@ namespace JwtAuthApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            var user = await _userManager.FindByNameAsync(model.Username);
-            if (user == null || !user.TwoFactorEnabled)
-                return Ok(new { message = "If your account has 2FA enabled, a new code has been sent" });
-
-            // Rate limiting: Wait 1 minute between requests
-            if (user.TwoFactorCodeLastSent.HasValue)
+            try
             {
-                var timeSinceLastSent = DateTime.UtcNow - user.TwoFactorCodeLastSent.Value;
-                var waitTimeMinutes = 1; // Wait 1 minute between requests
+                var result = await _authRepo.Resend2FACodeAsync(model.Username);
+                if (!result.IsSuccess)
+                    return Unauthorized(new { message = result.Error });
 
-                if (timeSinceLastSent.TotalMinutes < waitTimeMinutes)
+                var user = result.Value;
+
+                if (user == null)
+                    return Ok(new { message = "If your account has 2FA enabled, a new code has been sent" });
+
+                await SendNew2FACodeAsync(user);
+                _logger.LogInformation($"2FA code resent to {model.Username}");
+
+                return Ok(new
                 {
-                    var secondsRemaining = (int)((waitTimeMinutes * 60) - timeSinceLastSent.TotalSeconds);
-
-                    return BadRequest(new
-                    {
-                        message = $"Please wait {secondsRemaining} seconds before requesting a new code",
-                        canResendIn = secondsRemaining
-                    });
-                }
+                    message = "A new verification code has been sent to your email",
+                    expiresIn = "5 minutes"
+                });
             }
-
-            await SendNew2FACodeAsync(user);
-
-            _logger.LogInformation($"2FA code resent to {model.Username}");
-
-            return Ok(new
+            catch (Exception)
             {
-                message = "A new verification code has been sent to your email",
-                expiresIn = "5 minutes"
-            });
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
         }
 
         [HttpPost("enable-2fa")]

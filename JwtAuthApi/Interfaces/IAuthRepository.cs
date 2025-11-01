@@ -15,5 +15,6 @@ namespace JwtAuthApi.Interfaces
         Task<OperationResult<AppUser, string>> ResendEmailConfirmationAsync(ResendConfirmationDto model);
         Task<OperationResult<AppUser, string>> LoginAsync(LoginDto model);
         Task<OperationResult<AppUser, string>> Verify2FAAsync(string username, string code);
+        Task<OperationResult<AppUser?, string>> Resend2FACodeAsync(string username);
     }
 }
