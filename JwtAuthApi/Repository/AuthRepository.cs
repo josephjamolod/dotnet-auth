@@ -176,6 +176,16 @@ namespace JwtAuthApi.Repository
             return OperationResult<AppUser?, string>.Success(user);
         }
 
+        public async Task<RefreshToken?> RefreshTokenAsync(string refreshToken)
+        {
+            var token = await _context.RefreshTokens
+                         .Include(rt => rt.User)
+                         .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+            if (token == null)
+                return null;
+            return token;
+        }
+
         public async Task<AuthResponseDto> SaveRefreshToken(AppUser user, string ipAddress, RefreshToken? token = default)
         {
             var roles = await _userManager.GetRolesAsync(user);

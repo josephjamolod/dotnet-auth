@@ -21,14 +21,12 @@ namespace JwtAuthApi.Controllers
         private readonly UserManager<AppUser> _userManager;
         private readonly ILogger<AuthController> _logger;
         private readonly IEmailService _emailService;
-        private readonly ITokenService _tokenService;
-        private readonly ApplicationDBContext _context;
+
         private readonly IAuthRepository _authRepo;
         public AuthController(
             UserManager<AppUser> userManager,
             ILogger<AuthController> logger,
             IEmailService emailService,
-            ITokenService tokenService,
             ApplicationDBContext context,
             IAuthRepository authRepo
             )
@@ -36,10 +34,7 @@ namespace JwtAuthApi.Controllers
             _userManager = userManager;
             _logger = logger;
             _emailService = emailService;
-            _tokenService = tokenService;
-            _context = context;
             _authRepo = authRepo;
-
         }
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
@@ -275,23 +270,16 @@ namespace JwtAuthApi.Controllers
                 return BadRequest(ModelState);
             try
             {
-                // Find refresh token in database
-                var token = await _context.RefreshTokens
-                    .Include(rt => rt.User)
-                    .FirstOrDefaultAsync(rt => rt.Token == model.RefreshToken);
-
+                var token = await _authRepo.RefreshTokenAsync(model.RefreshToken);
                 if (token == null || !token.IsActive)
                 {
                     _logger.LogWarning("Invalid refresh token attempt");
                     return Unauthorized(new { message = "Invalid or expired refresh token" });
                 }
 
-                var user = token.User;
-
                 // Generate new tokens
-                var authResponse = await _authRepo.SaveRefreshToken(user, GetIpAddress(), token);
-
-                _logger.LogInformation($"Token refreshed for user '{user.UserName}'");
+                var authResponse = await _authRepo.SaveRefreshToken(token.User, GetIpAddress(), token);
+                _logger.LogInformation($"Token refreshed for user '{token.User.UserName}'");
 
                 return Ok(authResponse);
             }
@@ -299,7 +287,6 @@ namespace JwtAuthApi.Controllers
             {
                 return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
             }
-
         }
 
         [HttpPost("revoke")]
