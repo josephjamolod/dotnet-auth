@@ -17,5 +17,6 @@ namespace JwtAuthApi.Interfaces
         Task<OperationResult<AppUser, string>> Verify2FAAsync(string username, string code);
         Task<OperationResult<AppUser?, string>> Resend2FACodeAsync(string username);
         Task<OperationResult<AppUser?, string>> Enable2FAAsync(string userId);
+        Task<OperationResult<AppUser?, string>> Disable2FAAsync(string userId);
     }
 }

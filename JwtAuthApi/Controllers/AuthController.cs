@@ -242,27 +242,30 @@ namespace JwtAuthApi.Controllers
         [Authorize]
         public async Task<IActionResult> Disable2FA()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized(new { message = "Invalid authentication token" });
-
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-                return NotFound(new { message = "User cannot be found" });
-            if (!user.TwoFactorEnabled)
-                return BadRequest("2FA already disabled");
-            await _userManager.SetTwoFactorEnabledAsync(user, false);
-
-            // Clear any existing 2FA codes
-            user.TwoFactorCode = null;
-            user.TwoFactorCodeExpiry = null;
-            await _userManager.UpdateAsync(user);
-
-            _logger.LogInformation($"2FA disabled for user '{user.UserName}'");
-            return Ok(new
+            try
             {
-                message = "Two-factor authentication has been disabled successfully"
-            });
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "Invalid authentication token" });
+
+                var result = await _authRepo.Disable2FAAsync(userId);
+                if (!result.IsSuccess)
+                    return BadRequest(new { message = result.Error });
+                var user = result.Value;
+
+                if (user == null)
+                    return NotFound(new { message = "User not found" });
+
+                _logger.LogInformation($"2FA disabled for user '{user.UserName}'");
+                return Ok(new
+                {
+                    message = "Two-factor authentication has been disabled successfully"
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
         }
 
         /// Refresh expired access token using refresh token

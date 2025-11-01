@@ -154,7 +154,26 @@ namespace JwtAuthApi.Repository
             await _userManager.SetTwoFactorEnabledAsync(user, true);
             return OperationResult<AppUser?, string>.Success(user);
         }
+        public async Task<OperationResult<AppUser?, string>> Disable2FAAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return OperationResult<AppUser?, string>.Success(null);
+            // return NotFound(new { message = "User cannot be found" });
+            if (!user.TwoFactorEnabled)
+                return OperationResult<AppUser?, string>.Failure("2FA already disabled");
+            // return BadRequest("2FA already disabled");
+            await _userManager.SetTwoFactorEnabledAsync(user, false);
 
+            // Clear any existing 2FA codes
+            user.TwoFactorCode = null;
+            user.TwoFactorCodeExpiry = null;
+            await _userManager.UpdateAsync(user);
+            return OperationResult<AppUser?, string>.Success(user);
+        }
+
+
+        //HELPERS
         private async Task<bool> UsernameExistsAsync(string username)
            => await _userManager.FindByNameAsync(username) != null;
         private async Task<bool> EmailExistsAsync(string email)
