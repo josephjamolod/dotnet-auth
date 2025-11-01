@@ -83,6 +83,22 @@ namespace JwtAuthApi.Repository
             return OperationResult<AppUser, string>.Success(user);
         }
 
+        public async Task<OperationResult<AppUser, string>> LoginAsync(LoginDto model)
+        {
+            var user = await _userManager.FindByNameAsync(model.UserName);
+            if (user == null)
+                return OperationResult<AppUser, string>.Failure("User Cannot be found");
+
+            var isCorrectPassword = await _userManager.CheckPasswordAsync(user, model.Password);
+            if (!isCorrectPassword)
+                return OperationResult<AppUser, string>.Failure("Invalid Credentials!");
+
+            if (!user.EmailConfirmed)
+                return OperationResult<AppUser, string>.Failure("Please confirm your email before logging in. Check your inbox for confirmation link.");
+
+            return OperationResult<AppUser, string>.Success(user);
+        }
+
         private async Task<bool> UsernameExistsAsync(string username)
            => await _userManager.FindByNameAsync(username) != null;
         private async Task<bool> EmailExistsAsync(string email)

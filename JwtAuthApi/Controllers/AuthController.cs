@@ -107,29 +107,14 @@ namespace JwtAuthApi.Controllers
         public async Task<IActionResult> Login([FromBody] LoginDto model)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
-            var user = await _userManager.FindByNameAsync(model.UserName);
-            if (user == null)
-            {
-                _logger.LogWarning($"Failed login attempt for username: {model.UserName}");
-                return Unauthorized(new { message = "User Cannot be found" });
-            }
-            var isCorrectPassword = await _userManager.CheckPasswordAsync(user, model.Password);
-            if (!isCorrectPassword)
-            {
-                _logger.LogWarning($"Failed login attempt for username: {model.UserName} - Invalid password");
-                return Unauthorized(new { message = "Invalid Credentials!" });
-            }
-            if (!user.EmailConfirmed)
-            {
-                return Unauthorized(new
-                {
-                    message = "Please confirm your email before logging in. Check your inbox for confirmation link."
-                });
-            }
+            AppUser user;
+
+            var result = await _authRepo.LoginAsync(model);
+            user = result.Value!;
+            if (!result.IsSuccess)
+                return Unauthorized(new { message = result.Error });
             // Check if 2FA is enabled for this user
             if (user.TwoFactorEnabled)
             {
