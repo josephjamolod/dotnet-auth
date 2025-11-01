@@ -108,100 +108,83 @@ namespace JwtAuthApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            AppUser user;
-
-            var result = await _authRepo.LoginAsync(model);
-            user = result.Value!;
-            if (!result.IsSuccess)
-                return Unauthorized(new { message = result.Error });
-            // Check if 2FA is enabled for this user
-            if (user.TwoFactorEnabled)
+            try
             {
-                await SendNew2FACodeAsync(user);
+                var result = await _authRepo.LoginAsync(model);
+                if (!result.IsSuccess)
+                    return Unauthorized(new { message = result.Error });
 
-                _logger.LogInformation($"2FA code sent to {model.UserName}");
-
-                return Ok(new AuthResponseDto
+                var user = result.Value!;
+                // Check if 2FA is enabled for this user
+                if (user.TwoFactorEnabled)
                 {
-                    RequiresTwoFactor = true,
-                    Username = user.UserName!,
-                    Email = user.Email!
-                });
+                    await SendNew2FACodeAsync(user);
+                    _logger.LogInformation($"2FA code sent to {model.UserName}");
+
+                    return Ok(new AuthResponseDto
+                    {
+                        RequiresTwoFactor = true,
+                        Username = user.UserName!,
+                        Email = user.Email!
+                    });
+                }
+
+                var authResponse = await SaveRefreshToken(user);
+
+                _logger.LogInformation($"User '{model.UserName}' logged in successfully from {GetIpAddress()}");
+
+                return Ok(authResponse);
             }
-
-            // Generate tokens
-            var roles = await _userManager.GetRolesAsync(user);
-            var accessToken = _tokenService.GenerateAccessToken(user, roles);
-            var refreshToken = _tokenService.GenerateRefreshToken(GetIpAddress());
-
-            // Save refresh token to database
-            refreshToken.UserId = user.Id;
-            _context.RefreshTokens.Add(refreshToken);
-            await _context.SaveChangesAsync();
-            _logger.LogInformation($"User '{model.UserName}' logged in successfully from {GetIpAddress()}");
-            return Ok(new AuthResponseDto
+            catch (Exception ex)
             {
-                AccessToken = accessToken,
-                RefreshToken = refreshToken.Token,
-                AccessTokenExpiration = DateTime.UtcNow.AddMinutes(15),
-                Username = user.UserName!,
-                Email = user.Email!,
-                Roles = roles.ToList(),
-                RequiresTwoFactor = false
-            });
+                _logger.LogError(ex, $"Unexpected error during login for user: {model.UserName}");
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
         }
+
 
         //Verify 2fa and complete the login process
         [HttpPost("verify-2fa")]
         public async Task<IActionResult> Verify2FA([FromBody] Verify2FADto model)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
-            var user = await _userManager.FindByNameAsync(model.Username);
-            if (user == null)
+            try
             {
-                _logger.LogWarning($"2FA verification failed - user not found: {model.Username}");
-                return Unauthorized(new { message = "Invalid verification request" });
-            }
-            // Validate 2FA code
-            if (user.TwoFactorCode != model.Code ||
-                user.TwoFactorCodeExpiry == null ||
-                user.TwoFactorCodeExpiry < DateTime.UtcNow)
-            {
-                _logger.LogWarning($"Invalid or expired 2FA code for user '{model.Username}'");
-                return Unauthorized(new
+                var user = await _userManager.FindByNameAsync(model.Username);
+                if (user == null)
                 {
-                    message = "Invalid or expired verification code. Please request a new code."
-                });
+                    _logger.LogWarning($"2FA verification failed - user not found: {model.Username}");
+                    return Unauthorized(new { message = "Invalid verification request" });
+                }
+                // Validate 2FA code
+                if (user.TwoFactorCode != model.Code ||
+                    user.TwoFactorCodeExpiry == null ||
+                    user.TwoFactorCodeExpiry < DateTime.UtcNow)
+                {
+                    _logger.LogWarning($"Invalid or expired 2FA code for user '{model.Username}'");
+                    return Unauthorized(new
+                    {
+                        message = "Invalid or expired verification code. Please request a new code."
+                    });
+                }
+                // Clear 2FA code after successful verification
+                user.TwoFactorCode = null;
+                user.TwoFactorCodeExpiry = null;
+                await _userManager.UpdateAsync(user);
+
+                // Generate tokens
+                var authResponse = await SaveRefreshToken(user);
+
+                _logger.LogInformation($"2FA verification successful for user '{model.Username}'");
+
+                return Ok(authResponse);
             }
-            // Clear 2FA code after successful verification
-            user.TwoFactorCode = null;
-            user.TwoFactorCodeExpiry = null;
-            await _userManager.UpdateAsync(user);
-            // Generate tokens
-            var roles = await _userManager.GetRolesAsync(user);
-            var accessToken = _tokenService.GenerateAccessToken(user, roles);
-            var refreshToken = _tokenService.GenerateRefreshToken(GetIpAddress());
-
-            refreshToken.UserId = user.Id;
-            _context.RefreshTokens.Add(refreshToken);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation($"2FA verification successful for user '{model.Username}'");
-
-            return Ok(new AuthResponseDto
+            catch (Exception ex)
             {
-                AccessToken = accessToken,
-                RefreshToken = refreshToken.Token,
-                AccessTokenExpiration = DateTime.UtcNow.AddMinutes(15),
-                Username = user.UserName!,
-                Email = user.Email!,
-                Roles = roles.ToList(),
-                RequiresTwoFactor = false
-            });
+                _logger.LogError(ex, $"Unexpected error during login for user: {model.Username}");
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
         }
 
         // RESEND 2FA CODE ENDPOINT 
@@ -299,43 +282,33 @@ namespace JwtAuthApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            // Find refresh token in database
-            var token = await _context.RefreshTokens
-                .Include(rt => rt.User)
-                .FirstOrDefaultAsync(rt => rt.Token == model.RefreshToken);
-
-            if (token == null || !token.IsActive)
+            try
             {
-                _logger.LogWarning("Invalid refresh token attempt");
-                return Unauthorized(new { message = "Invalid or expired refresh token" });
+                // Find refresh token in database
+                var token = await _context.RefreshTokens
+                    .Include(rt => rt.User)
+                    .FirstOrDefaultAsync(rt => rt.Token == model.RefreshToken);
+
+                if (token == null || !token.IsActive)
+                {
+                    _logger.LogWarning("Invalid refresh token attempt");
+                    return Unauthorized(new { message = "Invalid or expired refresh token" });
+                }
+
+                var user = token.User;
+
+                // Generate new tokens
+                var authResponse = await SaveRefreshToken(user, token);
+
+                _logger.LogInformation($"Token refreshed for user '{user.UserName}'");
+
+                return Ok(authResponse);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
             }
 
-            var user = token.User;
-            var roles = await _userManager.GetRolesAsync(user);
-
-            // Generate new tokens
-            var newAccessToken = _tokenService.GenerateAccessToken(user, roles);
-            var newRefreshToken = _tokenService.GenerateRefreshToken(GetIpAddress());
-
-            // Mark old token as revoked
-            await RevokeTokensAsync(new List<RefreshToken>() { token }, GetIpAddress());
-
-            // Save new refresh token
-            newRefreshToken.UserId = user.Id;
-            _context.RefreshTokens.Add(newRefreshToken);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation($"Token refreshed for user '{user.UserName}'");
-
-            return Ok(new AuthResponseDto
-            {
-                AccessToken = newAccessToken,
-                RefreshToken = newRefreshToken.Token,
-                AccessTokenExpiration = DateTime.UtcNow.AddMinutes(15),
-                Username = user.UserName!,
-                Email = user.Email!,
-                Roles = roles.ToList()
-            });
         }
 
         [HttpPost("revoke")]
@@ -415,6 +388,31 @@ namespace JwtAuthApi.Controllers
         }
 
         // HELPER METHODS
+        private async Task<AuthResponseDto> SaveRefreshToken(AppUser user, RefreshToken? token = default)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            var accessToken = _tokenService.GenerateAccessToken(user, roles);
+            var refreshToken = _tokenService.GenerateRefreshToken(GetIpAddress());
+
+            if (token != null)
+                await RevokeTokensAsync([token], GetIpAddress());
+
+            // Save refresh token to database
+            refreshToken.UserId = user.Id;
+            _context.RefreshTokens.Add(refreshToken);
+            await _context.SaveChangesAsync();
+
+            return new AuthResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken.Token,
+                AccessTokenExpiration = DateTime.UtcNow.AddMinutes(15),
+                Username = user.UserName!,
+                Email = user.Email!,
+                Roles = [.. roles],
+                RequiresTwoFactor = false
+            };
+        }
         private async Task RevokeTokensAsync(List<RefreshToken> tokens, string reason)
         {
             if (tokens == null || tokens.Count == 0)
