@@ -248,6 +248,7 @@ namespace JwtAuthApi.Repository
                 return null;
             // Generate password reset token
             var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            await _emailService.SendPasswordResetEmailAsync(email, resetToken);
             return resetToken;
         }
 

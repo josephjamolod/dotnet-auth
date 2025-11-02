@@ -19,18 +19,14 @@ namespace JwtAuthApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly ILogger<AuthController> _logger;
-        private readonly IEmailService _emailService;
 
         private readonly IAuthRepository _authRepo;
         public AuthController(
             ILogger<AuthController> logger,
-            IEmailService emailService,
             IAuthRepository authRepo
             )
         {
-
             _logger = logger;
-            _emailService = emailService;
             _authRepo = authRepo;
         }
         [HttpPost("register")]
@@ -313,9 +309,7 @@ namespace JwtAuthApi.Controllers
                     message = "If the email exists, a password reset link has been sent"
                 });
 
-            await _emailService.SendPasswordResetEmailAsync(model.Email, resetToken);
             _logger.LogInformation($"Password reset requested for email: {model.Email}");
-
             return Ok(new
             {
                 message = "  password reset link has been sent"
@@ -347,33 +341,6 @@ namespace JwtAuthApi.Controllers
         }
 
         // HELPER METHODS
-
-        // private async Task SendNew2FACodeAsync(AppUser user)
-        // {
-        //     var code = GenerateRandom6DigitCode();
-        //     user.TwoFactorCode = code;
-        //     user.TwoFactorCodeExpiry = DateTime.UtcNow.AddMinutes(5);
-        //     user.TwoFactorCodeLastSent = DateTime.UtcNow;
-        //     await _userManager.UpdateAsync(user);
-
-        //     await _emailService.Send2FACodeAsync(user.Email!, code);
-        // }
-        // private async Task SendEmailConfirmationAsync(AppUser user)
-        // {
-        //     var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        //     var confirmationLink = Url.Action(
-        //         nameof(ConfirmEmail),
-        //         "Auth",
-        //         new { userId = user.Id, token },
-        //         Request.Scheme
-        //         );
-
-        //     await _emailService.SendEmailConfirmationAsync(user.Email!, confirmationLink!);
-        //     // Update rate limiting timestamp
-        //     user.EmailConfirmationLastSent = DateTime.UtcNow;
-        //     await _userManager.UpdateAsync(user);
-        // }
-
         private async Task<string?> GenerateConfirmationLink(AppUser user, string token)
         {
             // var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
@@ -386,12 +353,6 @@ namespace JwtAuthApi.Controllers
 
             return confirmationLink;
         }
-
-        // private static string GenerateRandom6DigitCode()
-        // {
-        //     var random = new Random();
-        //     return random.Next(100000, 999999).ToString();
-        // }
 
         private string GetIpAddress()
         {
