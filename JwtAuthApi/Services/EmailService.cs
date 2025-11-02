@@ -77,7 +77,7 @@ namespace JwtAuthApi.Interfaces
             var emailToSend = new EmailProps()
             {
                 Subject = "Your Two-Factor Authentication Code",
-                Body = await BodyConstructor("EmailConfirmation.html", code),
+                Body = await BodyConstructor("2FACode.html", code),
                 ToEmail = email
             };
 
@@ -90,7 +90,7 @@ namespace JwtAuthApi.Interfaces
             var emailToSend = new EmailProps()
             {
                 Subject = "Reset Your Password",
-                Body = await BodyConstructor("EmailConfirmation.html", resetLink),
+                Body = await BodyConstructor("ResetPasswordEmail.html", resetLink),
                 ToEmail = email
             };
 
