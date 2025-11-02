@@ -119,6 +119,9 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
+//Register background service for token cleanup
+builder.Services.AddHostedService<TokenCleanupService>();
+
 // 5. ADD CONTROLLERS
 builder.Services.AddControllers();
 
