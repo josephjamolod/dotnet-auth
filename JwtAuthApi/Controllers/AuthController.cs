@@ -35,19 +35,23 @@ namespace JwtAuthApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _authRepo.CreateUserAsync(model, GenerateConfirmationLink);
-
-            if (!result.IsSuccess)
-                return BadRequest(new { message = result.Error });
-
-            //generate email confirmation token
-            // await SendEmailConfirmationAsync(result.Value!);
-
-            _logger.LogInformation($"User '{model.Username}' registered successfully");
-            return Ok(new
+            try
             {
-                message = "Registration successful! Please check your email to confirm your account."
-            });
+                var result = await _authRepo.CreateUserAsync(model, GenerateConfirmationLink);
+
+                if (!result.IsSuccess)
+                    return BadRequest(new { message = result.Error });
+
+                _logger.LogInformation($"User '{model.Username}' registered successfully");
+                return Ok(new
+                {
+                    message = "Registration successful! Please check your email to confirm your account."
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
         }
 
         [HttpGet("confirm-email")]
@@ -55,13 +59,20 @@ namespace JwtAuthApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+            try
+            {
 
-            var result = await _authRepo.ConfirmEmailAsync(model);
+                var result = await _authRepo.ConfirmEmailAsync(model);
 
-            if (result.IsSuccess)
-                return Ok(result.Value);
+                if (result.IsSuccess)
+                    return Ok(result.Value);
 
-            return BadRequest(new { message = result.Error });
+                return BadRequest(new { message = result.Error });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
         }
 
         // Resend email confirmation link
@@ -71,24 +82,27 @@ namespace JwtAuthApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _authRepo.ResendEmailConfirmationAsync(model, GenerateConfirmationLink);
-            if (!result.IsSuccess)
-                return BadRequest(new { message = result.Error });
-
-            var user = result.Value;
-
-            if (user == null)
-                return Ok(new { messsage = "If the email exists, a confirmation link has been sent" });
-
-            // Generate new confirmation token
-            // await SendEmailConfirmationAsync(user);
-
-
-            return Ok(new
+            try
             {
-                message = "Confirmation email has been resent",
-                canResendAgainIn = "2 minutes"
-            });
+                var result = await _authRepo.ResendEmailConfirmationAsync(model, GenerateConfirmationLink);
+                if (!result.IsSuccess)
+                    return BadRequest(new { message = result.Error });
+
+                var user = result.Value;
+
+                if (user == null)
+                    return Ok(new { messsage = "If the email exists, a confirmation link has been sent" });
+
+                return Ok(new
+                {
+                    message = "Confirmation email has been resent",
+                    canResendAgainIn = "2 minutes"
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
         }
 
         [HttpPost("login")]
@@ -126,7 +140,6 @@ namespace JwtAuthApi.Controllers
                 return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
             }
         }
-
 
         //Verify 2fa and complete the login process
         [HttpPost("verify-2fa")]
@@ -302,18 +315,25 @@ namespace JwtAuthApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            var resetToken = await _authRepo.ForgotPasswordAsync(model.Email);
-            if (resetToken == null)
+            try
+            {
+                var resetToken = await _authRepo.ForgotPasswordAsync(model.Email);
+                if (resetToken == null)
+                    return Ok(new
+                    {
+                        message = "If the email exists, a password reset link has been sent"
+                    });
+
+                _logger.LogInformation($"Password reset requested for email: {model.Email}");
                 return Ok(new
                 {
-                    message = "If the email exists, a password reset link has been sent"
+                    message = "  password reset link has been sent"
                 });
-
-            _logger.LogInformation($"Password reset requested for email: {model.Email}");
-            return Ok(new
+            }
+            catch (Exception)
             {
-                message = "  password reset link has been sent"
-            });
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
         }
 
         /// Reset password with token
