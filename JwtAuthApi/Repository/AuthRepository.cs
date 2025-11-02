@@ -231,14 +231,13 @@ namespace JwtAuthApi.Repository
             };
         }
 
-        public async Task<RefreshToken?> RevokeTokenAsync(string refreshToken, string ipAddress)
+        public async Task<OperationResult<object, string>> RevokeTokenAsync(string refreshToken, string ipAddress)
         {
             var token = await _context.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == refreshToken);
             if (token == null || !token.IsActive)
-                return null;
-            // Mark token as revoked
+                return OperationResult<object, string>.Failure("Token not found or already revoked");
             await TokenRevokerAsync([token], ipAddress);
-            return token;
+            return OperationResult<object, string>.Success(new { message = "Token revoked successfully" });
         }
 
         public async Task<string?> ForgotPasswordAsync(string email)

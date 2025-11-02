@@ -296,12 +296,11 @@ namespace JwtAuthApi.Controllers
                 return BadRequest(ModelState);
             try
             {
-                var token = await _authRepo.RevokeTokenAsync(model.RefreshToken, GetIpAddress());
-                if (token == null || !token.IsActive)
-                    return NotFound(new { message = "Token not found or already revoked" });
-                _logger.LogInformation("Refresh token revoked successfully");
+                var result = await _authRepo.RevokeTokenAsync(model.RefreshToken, GetIpAddress());
+                if (!result.IsSuccess)
+                    return BadRequest(new { message = result.Error });
 
-                return Ok(new { message = "Token revoked successfully" });
+                return Ok(result.Value);
             }
             catch (Exception)
             {

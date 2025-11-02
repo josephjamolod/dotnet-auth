@@ -20,7 +20,7 @@ namespace JwtAuthApi.Interfaces
         Task<OperationResult<AppUser?, string>> Disable2FAAsync(string userId);
         Task<RefreshToken?> RefreshTokenAsync(string refreshToken);
         Task<AuthResponseDto> SaveRefreshToken(AppUser user, string ipAddress, RefreshToken? token = default);
-        Task<RefreshToken?> RevokeTokenAsync(string refreshToken, string ipAddress);
+        Task<OperationResult<object, string>> RevokeTokenAsync(string refreshToken, string ipAddress);
         Task<string?> ForgotPasswordAsync(string email);
         Task<OperationResult<string, string>> ResetPasswordAsync(ResetPasswordDto model);
     }
