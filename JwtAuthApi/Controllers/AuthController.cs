@@ -18,20 +18,17 @@ namespace JwtAuthApi.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly UserManager<AppUser> _userManager;
         private readonly ILogger<AuthController> _logger;
         private readonly IEmailService _emailService;
 
         private readonly IAuthRepository _authRepo;
         public AuthController(
-            UserManager<AppUser> userManager,
             ILogger<AuthController> logger,
             IEmailService emailService,
-            ApplicationDBContext context,
             IAuthRepository authRepo
             )
         {
-            _userManager = userManager;
+
             _logger = logger;
             _emailService = emailService;
             _authRepo = authRepo;
@@ -42,13 +39,13 @@ namespace JwtAuthApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _authRepo.CreateUserAsync(model);
+            var result = await _authRepo.CreateUserAsync(model, GenerateConfirmationLink);
 
             if (!result.IsSuccess)
                 return BadRequest(new { message = result.Error });
 
             //generate email confirmation token
-            await SendEmailConfirmationAsync(result.Value!);
+            // await SendEmailConfirmationAsync(result.Value!);
 
             _logger.LogInformation($"User '{model.Username}' registered successfully");
             return Ok(new
@@ -78,7 +75,7 @@ namespace JwtAuthApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _authRepo.ResendEmailConfirmationAsync(model);
+            var result = await _authRepo.ResendEmailConfirmationAsync(model, GenerateConfirmationLink);
             if (!result.IsSuccess)
                 return BadRequest(new { message = result.Error });
 
@@ -88,11 +85,8 @@ namespace JwtAuthApi.Controllers
                 return Ok(new { messsage = "If the email exists, a confirmation link has been sent" });
 
             // Generate new confirmation token
-            await SendEmailConfirmationAsync(user);
+            // await SendEmailConfirmationAsync(user);
 
-            // Update rate limiting timestamp
-            user.EmailConfirmationLastSent = DateTime.UtcNow;
-            await _userManager.UpdateAsync(user);
 
             return Ok(new
             {
@@ -116,9 +110,7 @@ namespace JwtAuthApi.Controllers
                 // Check if 2FA is enabled for this user
                 if (user.TwoFactorEnabled)
                 {
-                    await SendNew2FACodeAsync(user);
                     _logger.LogInformation($"2FA code sent to {model.UserName}");
-
                     return Ok(new AuthResponseDto
                     {
                         RequiresTwoFactor = true,
@@ -128,7 +120,6 @@ namespace JwtAuthApi.Controllers
                 }
 
                 var authResponse = await _authRepo.SaveRefreshToken(user, GetIpAddress());
-
                 _logger.LogInformation($"User '{model.UserName}' logged in successfully from {GetIpAddress()}");
 
                 return Ok(authResponse);
@@ -186,7 +177,7 @@ namespace JwtAuthApi.Controllers
                 if (user == null)
                     return Ok(new { message = "If your account has 2FA enabled, a new code has been sent" });
 
-                await SendNew2FACodeAsync(user);
+                // await SendNew2FACodeAsync(user);
                 _logger.LogInformation($"2FA code resent to {model.Username}");
 
                 return Ok(new
@@ -298,8 +289,8 @@ namespace JwtAuthApi.Controllers
             {
                 var token = await _authRepo.RevokeTokenAsync(model.RefreshToken, GetIpAddress());
                 if (token == null || !token.IsActive)
-                    //     return NotFound(new { message = "Token not found or already revoked" });
-                    _logger.LogInformation("Refresh token revoked successfully");
+                    return NotFound(new { message = "Token not found or already revoked" });
+                _logger.LogInformation("Refresh token revoked successfully");
 
                 return Ok(new { message = "Token revoked successfully" });
             }
@@ -315,16 +306,14 @@ namespace JwtAuthApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user == null || !user.EmailConfirmed)
+            var resetToken = await _authRepo.ForgotPasswordAsync(model.Email);
+            if (resetToken == null)
                 return Ok(new
                 {
                     message = "If the email exists, a password reset link has been sent"
                 });
-            // Generate password reset token
-            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
-            await _emailService.SendPasswordResetEmailAsync(user.Email!, resetToken);
+
+            await _emailService.SendPasswordResetEmailAsync(model.Email, resetToken);
             _logger.LogInformation($"Password reset requested for email: {model.Email}");
 
             return Ok(new
@@ -359,33 +348,50 @@ namespace JwtAuthApi.Controllers
 
         // HELPER METHODS
 
-        private async Task SendNew2FACodeAsync(AppUser user)
-        {
-            var code = GenerateRandom6DigitCode();
-            user.TwoFactorCode = code;
-            user.TwoFactorCodeExpiry = DateTime.UtcNow.AddMinutes(5);
-            user.TwoFactorCodeLastSent = DateTime.UtcNow;
-            await _userManager.UpdateAsync(user);
+        // private async Task SendNew2FACodeAsync(AppUser user)
+        // {
+        //     var code = GenerateRandom6DigitCode();
+        //     user.TwoFactorCode = code;
+        //     user.TwoFactorCodeExpiry = DateTime.UtcNow.AddMinutes(5);
+        //     user.TwoFactorCodeLastSent = DateTime.UtcNow;
+        //     await _userManager.UpdateAsync(user);
 
-            await _emailService.Send2FACodeAsync(user.Email!, code);
-        }
-        private async Task SendEmailConfirmationAsync(AppUser user)
+        //     await _emailService.Send2FACodeAsync(user.Email!, code);
+        // }
+        // private async Task SendEmailConfirmationAsync(AppUser user)
+        // {
+        //     var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        //     var confirmationLink = Url.Action(
+        //         nameof(ConfirmEmail),
+        //         "Auth",
+        //         new { userId = user.Id, token },
+        //         Request.Scheme
+        //         );
+
+        //     await _emailService.SendEmailConfirmationAsync(user.Email!, confirmationLink!);
+        //     // Update rate limiting timestamp
+        //     user.EmailConfirmationLastSent = DateTime.UtcNow;
+        //     await _userManager.UpdateAsync(user);
+        // }
+
+        private async Task<string?> GenerateConfirmationLink(AppUser user, string token)
         {
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            // var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             var confirmationLink = Url.Action(
                 nameof(ConfirmEmail),
                 "Auth",
                 new { userId = user.Id, token },
                 Request.Scheme
-                );
+            );
 
-            await _emailService.SendEmailConfirmationAsync(user.Email!, confirmationLink!);
+            return confirmationLink;
         }
-        private static string GenerateRandom6DigitCode()
-        {
-            var random = new Random();
-            return random.Next(100000, 999999).ToString();
-        }
+
+        // private static string GenerateRandom6DigitCode()
+        // {
+        //     var random = new Random();
+        //     return random.Next(100000, 999999).ToString();
+        // }
 
         private string GetIpAddress()
         {

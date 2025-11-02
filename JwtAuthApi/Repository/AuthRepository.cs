@@ -18,14 +18,18 @@ namespace JwtAuthApi.Repository
         private readonly UserManager<AppUser> _userManager;
         private readonly ApplicationDBContext _context;
         private readonly ITokenService _tokenService;
-        public AuthRepository(UserManager<AppUser> userManager, ApplicationDBContext context, ITokenService tokenService)
+        private readonly IEmailService _emailService;
+
+        public AuthRepository(UserManager<AppUser> userManager, ApplicationDBContext context, ITokenService tokenService, IEmailService emailService)
         {
             _userManager = userManager;
             _context = context;
             _tokenService = tokenService;
+            _emailService = emailService;
+
         }
 
-        public async Task<OperationResult<AppUser, string>> CreateUserAsync(RegisterDto model)
+        public async Task<OperationResult<AppUser, string>> CreateUserAsync(RegisterDto model, Func<AppUser, string, Task<string?>> genConfirmationLink)
         {
             if (await UsernameExistsAsync(model.Username) || await EmailExistsAsync(model.Email))
                 return OperationResult<AppUser, string>.Failure("User already exists");
@@ -43,6 +47,11 @@ namespace JwtAuthApi.Repository
                 return OperationResult<AppUser, string>.Failure("User creation failed");
 
             await _userManager.AddToRoleAsync(user, "User");
+            //generate email confirmation token
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var confirmationLink = await genConfirmationLink(user, token);
+            await SendEmailConfirmationAsync(user, confirmationLink!);
+
             return OperationResult<AppUser, string>.Success(user);
         }
         public async Task<OperationResult<object, string>> ConfirmEmailAsync(ConfirmEmailDto model)
@@ -61,7 +70,7 @@ namespace JwtAuthApi.Repository
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
             return OperationResult<object, string>.Failure(errors);
         }
-        public async Task<OperationResult<AppUser?, string>> ResendEmailConfirmationAsync(ResendConfirmationDto model)
+        public async Task<OperationResult<AppUser?, string>> ResendEmailConfirmationAsync(ResendConfirmationDto model, Func<AppUser, string, Task<string?>> genConfirmationLink)
         {
             var user = await _userManager.FindByEmailAsync(model.Email);
 
@@ -86,6 +95,11 @@ namespace JwtAuthApi.Repository
                      );
                 }
             }
+            // Generate new confirmation token
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var confirmationLink = await genConfirmationLink(user, token);
+            await SendEmailConfirmationAsync(user, confirmationLink!);
+
             return OperationResult<AppUser?, string>.Success(user);
         }
 
@@ -101,7 +115,11 @@ namespace JwtAuthApi.Repository
 
             if (!user.EmailConfirmed)
                 return OperationResult<AppUser, string>.Failure("Please confirm your email before logging in. Check your inbox for confirmation link.");
-
+            if (user.TwoFactorEnabled)
+            {
+                await SendNew2FACodeAsync(user);
+                return OperationResult<AppUser, string>.Success(user);
+            }
             return OperationResult<AppUser, string>.Success(user);
         }
 
@@ -143,6 +161,7 @@ namespace JwtAuthApi.Repository
                     return OperationResult<AppUser?, string>.Failure($"Please wait {secondsRemaining} seconds before requesting a new code");
                 }
             }
+            await SendNew2FACodeAsync(user);
             return OperationResult<AppUser?, string>.Success(user);
         }
         public async Task<OperationResult<AppUser?, string>> Enable2FAAsync(string userId)
@@ -222,6 +241,16 @@ namespace JwtAuthApi.Repository
             return token;
         }
 
+        public async Task<string?> ForgotPasswordAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null || !user.EmailConfirmed)
+                return null;
+            // Generate password reset token
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            return resetToken;
+        }
+
         public async Task<OperationResult<string, string>> ResetPasswordAsync(ResetPasswordDto model)
         {
             var user = await _userManager.FindByEmailAsync(model.Email);
@@ -244,6 +273,31 @@ namespace JwtAuthApi.Repository
         }
 
         //HELPERS
+        private async Task SendEmailConfirmationAsync(AppUser user, string confirmationLink)
+        {
+            await _emailService.SendEmailConfirmationAsync(user.Email!, confirmationLink!);
+            // Update rate limiting timestamp
+            user.EmailConfirmationLastSent = DateTime.UtcNow;
+            await _userManager.UpdateAsync(user);
+        }
+
+        private async Task SendNew2FACodeAsync(AppUser user)
+        {
+            var code = GenerateRandom6DigitCode();
+            user.TwoFactorCode = code;
+            user.TwoFactorCodeExpiry = DateTime.UtcNow.AddMinutes(5);
+            user.TwoFactorCodeLastSent = DateTime.UtcNow;
+            await _userManager.UpdateAsync(user);
+
+            await _emailService.Send2FACodeAsync(user.Email!, code);
+        }
+
+        private static string GenerateRandom6DigitCode()
+        {
+            var random = new Random();
+            return random.Next(100000, 999999).ToString();
+        }
+
         private async Task<bool> UsernameExistsAsync(string username)
            => await _userManager.FindByNameAsync(username) != null;
         private async Task<bool> EmailExistsAsync(string email)

@@ -10,9 +10,9 @@ namespace JwtAuthApi.Interfaces
 {
     public interface IAuthRepository
     {
-        Task<OperationResult<AppUser, string>> CreateUserAsync(RegisterDto model);
+        Task<OperationResult<AppUser, string>> CreateUserAsync(RegisterDto model, Func<AppUser, string, Task<string?>> genConfirmationLink);
         Task<OperationResult<object, string>> ConfirmEmailAsync(ConfirmEmailDto model);
-        Task<OperationResult<AppUser?, string>> ResendEmailConfirmationAsync(ResendConfirmationDto model);
+        Task<OperationResult<AppUser?, string>> ResendEmailConfirmationAsync(ResendConfirmationDto model, Func<AppUser, string, Task<string?>> genConfirmationLink);
         Task<OperationResult<AppUser, string>> LoginAsync(LoginDto model);
         Task<OperationResult<AppUser, string>> Verify2FAAsync(string username, string code);
         Task<OperationResult<AppUser?, string>> Resend2FACodeAsync(string username);
@@ -21,6 +21,7 @@ namespace JwtAuthApi.Interfaces
         Task<RefreshToken?> RefreshTokenAsync(string refreshToken);
         Task<AuthResponseDto> SaveRefreshToken(AppUser user, string ipAddress, RefreshToken? token = default);
         Task<RefreshToken?> RevokeTokenAsync(string refreshToken, string ipAddress);
+        Task<string?> ForgotPasswordAsync(string email);
         Task<OperationResult<string, string>> ResetPasswordAsync(ResetPasswordDto model);
     }
 }
