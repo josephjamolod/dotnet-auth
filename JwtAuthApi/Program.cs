@@ -118,6 +118,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 //Register background service for token cleanup
 builder.Services.AddHostedService<TokenCleanupService>();
