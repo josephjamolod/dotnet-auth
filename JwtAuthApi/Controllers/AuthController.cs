@@ -61,7 +61,6 @@ namespace JwtAuthApi.Controllers
                 return BadRequest(ModelState);
             try
             {
-
                 var result = await _authRepo.ConfirmEmailAsync(model);
 
                 if (result.IsSuccess)
@@ -81,7 +80,6 @@ namespace JwtAuthApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
             try
             {
                 var result = await _authRepo.ResendEmailConfirmationAsync(model, GenerateConfirmationLink);
