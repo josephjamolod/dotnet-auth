@@ -9,6 +9,7 @@ using JwtAuthApi.Mappers;
 using JwtAuthApi.Models;
 using JwtAuthApi.Repository.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace JwtAuthApi.Repository
 {
@@ -83,6 +84,45 @@ namespace JwtAuthApi.Repository
                 lastName = user.LastName
             });
 
+        }
+
+        public async Task<OperationResult<object, ErrorResult>> DeleteAccountAsync(string userId, DeleteAccountDto model)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status404NotFound,
+                    ErrDescription = "User Not Found"
+                });
+            // Verify password
+            var isPasswordValid = await _userManager.CheckPasswordAsync(user, model.Password);
+            if (!isPasswordValid)
+            {
+                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status401Unauthorized,
+                    ErrDescription = "Invalid password"
+                });
+            }
+            // Delete all user's refresh tokens
+            var tokens = await _context.RefreshTokens
+                .Where(rt => rt.UserId == user.Id)
+                .ToListAsync();
+
+            _context.RefreshTokens.RemoveRange(tokens);
+            await _context.SaveChangesAsync();
+
+            var result = await _userManager.DeleteAsync(user);
+
+            if (!result.Succeeded)
+                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status400BadRequest,
+                    ErrDescription = "Failed to delete account"
+                });
+
+            return OperationResult<object, ErrorResult>.Success(new { message = "Account deleted successfully" });
         }
     }
 }
