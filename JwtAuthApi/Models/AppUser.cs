@@ -18,7 +18,7 @@ namespace JwtAuthApi.Models
         public DateTime? TwoFactorCodeLastSent { get; set; }
         public DateTime? EmailConfirmationLastSent { get; set; }
 
-        //  Seller-specific fields
+        //Seller-specific fields
         public string? BusinessName { get; set; }
         public string? BusinessNumber { get; set; }
         public string? Address { get; set; }
@@ -28,13 +28,13 @@ namespace JwtAuthApi.Models
         public string? LogoUrl { get; set; }
         public string? Description { get; set; }
 
-        //  Seller approval status
+        //Seller approval status
         public bool IsApproved { get; set; } = false;
         public DateTime? ApprovedAt { get; set; }
         public string? ApprovedBy { get; set; }
         public string? RejectionReason { get; set; }
 
-        //  Seller status
+        //Seller status
         public bool IsActive { get; set; } = true;
         public decimal Rating { get; set; } = 0;
         public int TotalRatings { get; set; } = 0;
@@ -45,6 +45,6 @@ namespace JwtAuthApi.Models
 
         // Navigation properties (1 user can have many refreshtoken, fooditem,order,review)
         public List<RefreshToken> RefreshTokens { get; set; } = new();
-
+        public List<FoodItem> FoodItems { get; set; } = new();
     }
 }
