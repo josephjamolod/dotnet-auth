@@ -13,6 +13,10 @@ namespace JwtAuthApi.Data
     {
         // DbSet for RefreshToken table
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<FoodItem> FoodItems { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<Review> Reviews { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -23,6 +27,64 @@ namespace JwtAuthApi.Data
                 .WithMany(u => u.RefreshTokens)
                 .HasForeignKey(rt => rt.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure FoodItem
+            builder.Entity<FoodItem>()
+                .HasOne(f => f.Seller)
+                .WithMany(u => u.FoodItems)
+                .HasForeignKey(f => f.SellerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure Order
+            builder.Entity<Order>()
+                .HasOne(o => o.Customer)
+                .WithMany()
+                .HasForeignKey(o => o.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Order>()
+                .HasOne(o => o.Seller)
+                .WithMany(u => u.Orders)
+                .HasForeignKey(o => o.SellerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure OrderItem
+            builder.Entity<OrderItem>()
+                .HasOne(oi => oi.Order)
+                .WithMany(o => o.OrderItems)
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<OrderItem>()
+                .HasOne(oi => oi.FoodItem)
+                .WithMany(f => f.OrderItems)
+                .HasForeignKey(oi => oi.FoodItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure Review
+            builder.Entity<Review>()
+                .HasOne(r => r.Order)
+                .WithOne(o => o.Review)
+                .HasForeignKey<Review>(r => r.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Review>()
+                .HasOne(r => r.Customer)
+                .WithMany()
+                .HasForeignKey(r => r.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Review>()
+                .HasOne(r => r.Seller)
+                .WithMany(u => u.Reviews)
+                .HasForeignKey(r => r.SellerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Review>()
+                .HasOne(r => r.FoodItem)
+                .WithMany(f => f.Reviews)
+                .HasForeignKey(r => r.FoodItemId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Seed roles using migration approach
             builder.Entity<IdentityRole>().HasData(
@@ -37,8 +99,33 @@ namespace JwtAuthApi.Data
                     Id = "2",
                     Name = "User",
                     NormalizedName = "USER"
-                }
+                },
+                  new IdentityRole
+                  {
+                      Id = "3",
+                      Name = "Seller",
+                      NormalizedName = "SELLER"
+                  }
             );
+
+            // Create indexes for better performance
+            builder.Entity<FoodItem>()
+                .HasIndex(f => f.SellerId);
+
+            builder.Entity<FoodItem>()
+                .HasIndex(f => f.Category);
+
+            builder.Entity<Order>()
+                .HasIndex(o => o.CustomerId);
+
+            builder.Entity<Order>()
+                .HasIndex(o => o.SellerId);
+
+            builder.Entity<Order>()
+                .HasIndex(o => o.Status);
+
+            builder.Entity<Review>()
+                .HasIndex(r => r.SellerId);
         }
     }
 }
