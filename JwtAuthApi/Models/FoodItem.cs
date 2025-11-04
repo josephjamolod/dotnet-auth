@@ -41,5 +41,7 @@ namespace JwtAuthApi.Models
         public string SellerId { get; set; } = string.Empty;
         public AppUser Seller { get; set; } = null!;
 
+        // Navigation properties
+        public List<Review> Reviews { get; set; } = new();
     }
 }

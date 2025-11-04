@@ -47,6 +47,6 @@ namespace JwtAuthApi.Models
         public List<RefreshToken> RefreshTokens { get; set; } = new();
         public List<FoodItem> FoodItems { get; set; } = new();
         public List<Order> Orders { get; set; } = new();
-
+        public List<Review> Reviews { get; set; } = new();
     }
 }
