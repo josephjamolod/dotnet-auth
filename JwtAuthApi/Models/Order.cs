@@ -71,6 +71,7 @@ namespace JwtAuthApi.Models
         public AppUser Seller { get; set; } = null!;
 
         // Navigation properties
+        public List<OrderItem> OrderItems { get; set; } = new();
         public Review? Review { get; set; }
     }
 }

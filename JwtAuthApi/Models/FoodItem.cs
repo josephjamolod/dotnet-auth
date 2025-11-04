@@ -26,10 +26,6 @@ namespace JwtAuthApi.Models
         public string? ImageUrl { get; set; }
         public bool IsAvailable { get; set; } = true;
         public int PreparationTime { get; set; } = 30; // In minutes
-        // public bool IsVegetarian { get; set; } = false;
-        // public bool IsVegan { get; set; } = false;
-        // public bool IsGlutenFree { get; set; } = false;
-        // [Column(TypeName = "decimal(3,2)")]
         public decimal Rating { get; set; } = 0;
         public int TotalRatings { get; set; } = 0;
         public int TotalSold { get; set; } = 0;
@@ -42,6 +38,7 @@ namespace JwtAuthApi.Models
         public AppUser Seller { get; set; } = null!;
 
         // Navigation properties
+        public List<OrderItem> OrderItems { get; set; } = new();
         public List<Review> Reviews { get; set; } = new();
     }
 }
