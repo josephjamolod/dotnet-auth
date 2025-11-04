@@ -46,5 +46,7 @@ namespace JwtAuthApi.Models
         // Navigation properties (1 user can have many refreshtoken, fooditem,order,review)
         public List<RefreshToken> RefreshTokens { get; set; } = new();
         public List<FoodItem> FoodItems { get; set; } = new();
+        public List<Order> Orders { get; set; } = new();
+
     }
 }
