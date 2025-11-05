@@ -134,7 +134,7 @@ namespace JwtAuthApi.Controllers
                 // Check if 2FA is enabled for this user
                 if (user.TwoFactorEnabled)
                 {
-                    _logger.LogInformation($"2FA code sent to {model.UserName}");
+                    _logger.LogInformation($"2FA code sent to {model.Email}");
                     return Ok(new AuthResponseDto
                     {
                         RequiresTwoFactor = true,
@@ -144,13 +144,13 @@ namespace JwtAuthApi.Controllers
                 }
 
                 var authResponse = await _authRepo.SaveRefreshToken(user, GetIpAddress());
-                _logger.LogInformation($"User '{model.UserName}' logged in successfully from {GetIpAddress()}");
+                _logger.LogInformation($"User '{model.Email}' logged in successfully from {GetIpAddress()}");
 
                 return Ok(authResponse);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Unexpected error during login for user: {model.UserName}");
+                _logger.LogError(ex, $"Unexpected error during login for user: {model.Email}");
                 return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
             }
         }

@@ -136,7 +136,7 @@ namespace JwtAuthApi.Repository
 
         public async Task<OperationResult<AppUser, string>> LoginAsync(LoginDto model)
         {
-            var user = await _userManager.FindByNameAsync(model.UserName);
+            var user = await _userManager.FindByEmailAsync(model.Email);
             if (user == null)
                 return OperationResult<AppUser, string>.Failure("User Cannot be found");
 
@@ -146,6 +146,14 @@ namespace JwtAuthApi.Repository
 
             if (!user.EmailConfirmed)
                 return OperationResult<AppUser, string>.Failure("Please confirm your email before logging in. Check your inbox for confirmation link.");
+
+            // Check if seller is approved(only for Seller role)
+            var roles = await _userManager.GetRolesAsync(user);
+            if (roles.Contains("Seller") && !user.IsApproved)
+            {
+                return OperationResult<AppUser, string>.Failure("Your seller account is pending approval. You will be notified via email once approved.");
+            }
+
             if (user.TwoFactorEnabled)
             {
                 await SendNew2FACodeAsync(user);
