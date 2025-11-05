@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using JwtAuthApi.Data;
 using JwtAuthApi.Dtos;
+using JwtAuthApi.Dtos.Seller;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -29,24 +30,39 @@ namespace JwtAuthApi.Controllers
             _logger = logger;
             _authRepo = authRepo;
         }
+        [HttpPost("register-seller")]
+        public async Task<IActionResult> RegisterSeller([FromBody] RegisterSellerDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            try
+            {
+                var result = await _authRepo.RegisterSellerAsync(model, GenerateConfirmationLink);
+                if (!result.IsSuccess)
+                    return BadRequest(new { message = result.Error });
+                _logger.LogInformation($"New seller registered: {model.BusinessName}");
+
+                return Ok(result.Value);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
+        }
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
             try
             {
                 var result = await _authRepo.CreateUserAsync(model, GenerateConfirmationLink);
 
                 if (!result.IsSuccess)
                     return BadRequest(new { message = result.Error });
-
                 _logger.LogInformation($"User '{model.Username}' registered successfully");
-                return Ok(new
-                {
-                    message = "Registration successful! Please check your email to confirm your account."
-                });
+
+                return Ok(result.Value);
             }
             catch (Exception)
             {

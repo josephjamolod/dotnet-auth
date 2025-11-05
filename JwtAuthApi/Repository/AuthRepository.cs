@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using JwtAuthApi.Data;
 using JwtAuthApi.Dtos;
+using JwtAuthApi.Dtos.Seller;
 using JwtAuthApi.Interfaces;
+using JwtAuthApi.Mappers;
 using JwtAuthApi.Models;
 using JwtAuthApi.Repository.Models;
 using Microsoft.AspNetCore.Identity;
@@ -28,23 +30,48 @@ namespace JwtAuthApi.Repository
             _emailService = emailService;
 
         }
+        public async Task<OperationResult<object, string>> RegisterSellerAsync(RegisterSellerDto model, Func<AppUser, string, Task<string?>> genConfirmationLink)
+        {
+            if (await EmailExistsAsync(model.Email))
+                return OperationResult<object, string>.Failure("Email already exists");
 
-        public async Task<OperationResult<AppUser, string>> CreateUserAsync(RegisterDto model, Func<AppUser, string, Task<string?>> genConfirmationLink)
+            var existingBusiness = await _userManager.Users
+                .AnyAsync(u => u.BusinessNumber == model.BusinessNumber);
+            if (existingBusiness)
+                return OperationResult<object, string>.Failure("Business number is already registered");
+
+            var seller = model.ToUserFromRegisterSellerDto();
+            var result = await _userManager.CreateAsync(seller, model.Password);
+
+            if (!result.Succeeded)
+                return OperationResult<object, string>.Failure("Registration failed");
+
+            // Assign Seller role
+            await _userManager.AddToRoleAsync(seller, "Seller");
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(seller);
+
+            // Send confirmation email
+            var confirmationLink = await genConfirmationLink(seller, token);
+            await SendEmailConfirmationAsync(seller, confirmationLink!);
+
+            return OperationResult<object, string>.Success(new
+            {
+                message = "Registration successful! Please check your email to confirm your account. You will be notified via email once admin approved.",
+                businessName = model.BusinessName,
+                status = "Pending Approval"
+            });
+        }
+
+        public async Task<OperationResult<object, string>> CreateUserAsync(RegisterDto model, Func<AppUser, string, Task<string?>> genConfirmationLink)
         {
             if (await UsernameExistsAsync(model.Username) || await EmailExistsAsync(model.Email))
-                return OperationResult<AppUser, string>.Failure("User already exists");
+                return OperationResult<object, string>.Failure("User already exists");
 
-            var user = new AppUser
-            {
-                UserName = model.Username,
-                Email = model.Email,
-                FirstName = model.FirstName,
-                LastName = model.LastName
-            };
+            var user = model.ToUserFromRegisterDto();
 
             var result = await _userManager.CreateAsync(user, model.Password);
             if (!result.Succeeded)
-                return OperationResult<AppUser, string>.Failure("User creation failed");
+                return OperationResult<object, string>.Failure("User creation failed");
 
             await _userManager.AddToRoleAsync(user, "User");
             //generate email confirmation token
@@ -52,7 +79,11 @@ namespace JwtAuthApi.Repository
             var confirmationLink = await genConfirmationLink(user, token);
             await SendEmailConfirmationAsync(user, confirmationLink!);
 
-            return OperationResult<AppUser, string>.Success(user);
+            return OperationResult<object, string>.Success(new
+            {
+                message = "Registration successful! Please check your email to confirm your account.",
+                status = "Approved"
+            });
         }
         public async Task<OperationResult<object, string>> ConfirmEmailAsync(ConfirmEmailDto model)
         {
