@@ -1,5 +1,6 @@
 //this is the builder, this going to controll things like dependency injection, provides services
 using System.Text;
+using System.Text.Json.Serialization;
 using JwtAuthApi.Data;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Models;
@@ -125,7 +126,10 @@ builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddHostedService<TokenCleanupService>();
 
 // 5. ADD CONTROLLERS
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    }); ; ;
 
 
 var app = builder.Build();

@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using JwtAuthApi.Dtos.Admin;
 using JwtAuthApi.Interfaces;
+using JwtAuthApi.Repository.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -40,6 +41,20 @@ namespace JwtAuthApi.Controllers
             catch (Exception)
             {
                 return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
+        }
+        [HttpGet("pending")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetPendingSellers([FromQuery] SellerQueryObject queryObject)
+        {
+            try
+            {
+                var result = await _adminRepo.GetPendingSellersAsync(queryObject);
+                return Ok(result);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "Error retrieving sellers" });
             }
         }
     }
