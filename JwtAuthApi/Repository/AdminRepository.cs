@@ -37,7 +37,7 @@ namespace JwtAuthApi.Repository
                 seller.RejectionReason = model.RejectionReason;
                 await _userManager.UpdateAsync(seller);
 
-                // TODO: Send rejection email
+                await _emailService.SendSellerRejectionEmail(seller.Email!, model.RejectionReason);
                 return OperationResult<object, string>.Success(new
                 {
                     message = "Seller rejected",
@@ -45,12 +45,14 @@ namespace JwtAuthApi.Repository
                     reason = model.RejectionReason
                 });
             }
+
             seller.IsApproved = true;
             seller.ApprovedAt = DateTime.UtcNow;
             seller.ApprovedBy = adminId;
             seller.RejectionReason = null;
             await _userManager.UpdateAsync(seller);
-            // TODO: Send approval email
+
+            await _emailService.SendSellerApprovalEmail(seller.Email!);
             return OperationResult<object, string>.Success(new
             {
                 message = "Seller approved successfully",

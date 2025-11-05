@@ -95,17 +95,45 @@ namespace JwtAuthApi.Interfaces
             };
 
             await SendEmailAsync(emailToSend);
+        }
 
+        public async Task SendSellerApprovalEmail(string email)
+        {
+            var emailToSend = new EmailProps()
+            {
+                Subject = "Account Approval",
+                Body = await BodyConstructor("EmailApproved.html", null),
+                ToEmail = email
+            };
+
+            await SendEmailAsync(emailToSend);
+        }
+
+        public async Task SendSellerRejectionEmail(string email, string rejectionReason)
+        {
+            var emailToSend = new EmailProps()
+            {
+                Subject = "Account Approval",
+                Body = await BodyConstructor("EmailReject.html", rejectionReason),
+                ToEmail = email
+            };
+
+            await SendEmailAsync(emailToSend);
         }
 
         //HELPER
-        private static async Task<string> BodyConstructor(string templateFile, string link)
+        private static async Task<string> BodyConstructor(string templateFile, string? link)
         {
             var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", templateFile);
             var body = await File.ReadAllTextAsync(templatePath);
-            body = body.Replace("{{replaceable}}", link);
+            if (link != null)
+            {
+                body = body.Replace("{{replaceable}}", link);
+            }
             return body;
         }
+
+
     }
 
 
