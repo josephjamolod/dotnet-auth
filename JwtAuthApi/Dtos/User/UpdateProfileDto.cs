@@ -12,10 +12,10 @@ namespace JwtAuthApi.Dtos.User
         [StringLength(50, MinimumLength = 3)]
         public string UserName { get; set; } = string.Empty;
 
-        [StringLength(50)]
+        [StringLength(30)]
         public string? FirstName { get; set; }
 
-        [StringLength(50)]
+        [StringLength(30)]
         public string? LastName { get; set; }
     }
 }
