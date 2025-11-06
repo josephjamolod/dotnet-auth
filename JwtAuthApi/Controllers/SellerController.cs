@@ -50,7 +50,6 @@ namespace JwtAuthApi.Controllers
             try
             {
                 var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                _logger.LogInformation(sellerId);
                 var result = await _sellerRepo.UpdateSellerAsync(model, sellerId!);
                 if (!result.IsSuccess)
                     return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
@@ -59,6 +58,25 @@ namespace JwtAuthApi.Controllers
             catch (Exception)
             {
                 return StatusCode(500, new { message = "Error updating profile" });
+            }
+        }
+
+        [HttpPatch("toggle-status")]
+        public async Task<IActionResult> ToggleStatus()
+        {
+            try
+            {
+                var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                var result = await _sellerRepo.ToggleStatusAsync(sellerId!);
+                if (!result.IsSuccess)
+                    return NotFound(new { message = result.Error });
+
+                return Ok(result.Value);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "Error updating status" });
             }
         }
     }

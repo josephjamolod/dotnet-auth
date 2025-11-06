@@ -65,5 +65,19 @@ namespace JwtAuthApi.Repository
                 businessName = seller.BusinessName
             });
         }
+        public async Task<OperationResult<object, string>> ToggleStatusAsync(string sellerId)
+        {
+            var seller = await _userManager.FindByIdAsync(sellerId);
+            if (seller == null)
+                return OperationResult<object, string>.Failure("Seller Not Found");
+            seller.IsActive = !seller.IsActive;
+            seller.UpdatedAt = DateTime.UtcNow;
+            await _userManager.UpdateAsync(seller);
+            return OperationResult<object, string>.Success(new
+            {
+                message = $"Status changed to {(seller.IsActive ? "Active" : "Inactive")}",
+                isActive = seller.IsActive
+            });
+        }
     }
 }
