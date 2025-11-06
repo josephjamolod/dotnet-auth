@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace JwtAuthApi.Dtos.Seller
 {
-    public class SellerDto
+    public class PendingSellerDto
     {
         public required string Id { get; set; }
         public string? BusinessName { get; set; }

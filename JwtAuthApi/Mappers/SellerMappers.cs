@@ -9,9 +9,9 @@ namespace JwtAuthApi.Mappers
 {
     public static class SellerMappers
     {
-        public static SellerDto UserToSellerDto(this AppUser user)
+        public static PendingSellerDto UserToSellerDto(this AppUser user)
         {
-            return new SellerDto()
+            return new PendingSellerDto()
             {
                 Id = user.Id,
                 BusinessName = user.BusinessName,
