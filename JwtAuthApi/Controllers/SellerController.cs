@@ -79,5 +79,7 @@ namespace JwtAuthApi.Controllers
                 return StatusCode(500, new { message = "Error updating status" });
             }
         }
+
+        //todo: upload logo
     }
 }

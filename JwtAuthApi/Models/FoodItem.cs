@@ -23,7 +23,6 @@ namespace JwtAuthApi.Models
         [Required]
         [StringLength(50)]
         public string Category { get; set; } = string.Empty; // e.g., "Main Course", "Dessert", "Beverage"
-        public string? ImageUrl { get; set; }
         public bool IsAvailable { get; set; } = true;
         public int PreparationTime { get; set; } = 30; // In minutes
         public decimal Rating { get; set; } = 0;
@@ -40,5 +39,6 @@ namespace JwtAuthApi.Models
         // Navigation properties
         public List<OrderItem> OrderItems { get; set; } = new();
         public List<Review> Reviews { get; set; } = new();
+        public List<FoodImage> ImageUrls { get; set; } = new();
     }
 }

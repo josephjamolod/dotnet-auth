@@ -17,6 +17,8 @@ namespace JwtAuthApi.Data
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<Review> Reviews { get; set; }
+        public DbSet<FoodImage> FoodImages { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -85,6 +87,12 @@ namespace JwtAuthApi.Data
                 .WithMany(f => f.Reviews)
                 .HasForeignKey(r => r.FoodItemId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<FoodImage>()
+                .HasOne(i => i.FoodItem)
+                .WithMany(f => f.ImageUrls)
+                .HasForeignKey(i => i.FoodItemId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Seed roles using migration approach
             builder.Entity<IdentityRole>().HasData(
