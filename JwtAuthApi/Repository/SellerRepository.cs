@@ -38,5 +38,32 @@ namespace JwtAuthApi.Repository
 
             return OperationResult<SellerProfileDto, string>.Success(sellerProfile);
         }
+
+        public async Task<OperationResult<object, ErrorResult>> UpdateSellerAsync(UpdateSellerProfileDto model, string sellerId)
+        {
+            var seller = await _userManager.FindByIdAsync(sellerId);
+            if (seller == null)
+                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status404NotFound,
+                    ErrDescription = "Seller Not Found"
+                });
+
+            model.UpdateSellerProfileDtoToSeller(seller);
+
+            var result = await _userManager.UpdateAsync(seller);
+            if (!result.Succeeded)
+                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status400BadRequest,
+                    ErrDescription = "Update failed"
+                });
+
+            return OperationResult<object, ErrorResult>.Success(new
+            {
+                message = "Profile updated successfully",
+                businessName = seller.BusinessName
+            });
+        }
     }
 }

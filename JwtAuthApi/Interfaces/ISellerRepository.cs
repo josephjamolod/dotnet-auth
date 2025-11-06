@@ -10,5 +10,6 @@ namespace JwtAuthApi.Interfaces
     public interface ISellerRepository
     {
         Task<OperationResult<SellerProfileDto, string>> GetSellerProfileAsync(string sellerId);
+        Task<OperationResult<object, ErrorResult>> UpdateSellerAsync(UpdateSellerProfileDto model, string sellerId);
     }
 }
