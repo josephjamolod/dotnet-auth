@@ -121,6 +121,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<ISellerRepository, SellerRepository>();
 
 //Register background service for token cleanup
 builder.Services.AddHostedService<TokenCleanupService>();

@@ -20,7 +20,7 @@ namespace JwtAuthApi.Controllers
         {
             _userRepo = userRepo;
         }
-        [HttpGet]
+        [HttpGet("profile")]
         public async Task<IActionResult> GetUserProfile()
         {
             try

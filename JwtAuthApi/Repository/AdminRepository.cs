@@ -107,7 +107,7 @@ namespace JwtAuthApi.Repository
             var sellers = await sellersQuery
                     .Skip(skip)
                     .Take(queryObject.PageSize)
-                    .Select(u => u.UserToSellerDto())
+                    .Select(u => u.UserToPendingSellerDto())
                     .ToListAsync();
 
             return new

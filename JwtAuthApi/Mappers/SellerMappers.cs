@@ -9,7 +9,7 @@ namespace JwtAuthApi.Mappers
 {
     public static class SellerMappers
     {
-        public static PendingSellerDto UserToSellerDto(this AppUser user)
+        public static PendingSellerDto UserToPendingSellerDto(this AppUser user)
         {
             return new PendingSellerDto()
             {
@@ -25,5 +25,40 @@ namespace JwtAuthApi.Mappers
                 RegisteredAt = user.CreatedAt
             };
         }
+        public static SellerProfileDto UserToSellerProfileDto(this AppUser seller)
+        {
+            return new SellerProfileDto()
+            {
+                // Personal info
+                FirstName = seller.FirstName,
+                LastName = seller.LastName,
+                Email = seller.Email,
+                PhoneNumber = seller.PhoneNumber,
+
+                // Business info
+                BusinessName = seller.BusinessName,
+                BusinessNumber = seller.BusinessNumber,
+                Description = seller.Description,
+                LogoUrl = seller.LogoUrl,
+
+                // Address
+                Address = seller.Address,
+                City = seller.City,
+                State = seller.State,
+                PostalCode = seller.PostalCode,
+
+                // Status
+                IsApproved = seller.IsApproved,
+                IsActive = seller.IsActive,
+                Rating = seller.Rating,
+                TotalRatings = seller.TotalRatings,
+
+
+                // Timestamps
+                CreatedAt = seller.CreatedAt,
+                ApprovedAt = seller.ApprovedAt
+            };
+        }
     }
+
 }
