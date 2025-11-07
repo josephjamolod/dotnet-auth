@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using JwtAuthApi.Data;
 using JwtAuthApi.Dtos.Foods;
 using JwtAuthApi.Interfaces;
+using JwtAuthApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace JwtAuthApi.Controllers
 {
@@ -29,7 +32,7 @@ namespace JwtAuthApi.Controllers
             try
             {
                 var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var result = await _foodItemRepo.FindById(id, sellerId!);
+                var result = await _foodItemRepo.GetByIdAsync(id, sellerId!);
                 if (!result.IsSuccess)
                     return NotFound(new { message = result.Error });
 
@@ -66,6 +69,33 @@ namespace JwtAuthApi.Controllers
             catch (Exception)
             {
                 return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
+        }
+        [HttpPost("{id}/images")]
+        public async Task<IActionResult> UploadFoodImages(
+           int id,
+           [FromForm] List<IFormFile> images,
+           [FromForm] bool setFirstAsMain = true)
+        {
+            if (images == null || !images.Any())
+                return BadRequest(new { message = "No images uploaded" });
+
+            // Validate max 5 images
+            if (images.Count > 5)
+                return BadRequest(new { message = "Maximum 5 images allowed" });
+
+            try
+            {
+                var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var result = await _foodItemRepo.UploadFoodImagesAsync(id, images, setFirstAsMain, sellerId!);
+                if (!result.IsSuccess)
+                    return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
+                return Ok(result.Value);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error uploading images for item {id}");
+                return StatusCode(500, new { message = "Error uploading images" });
             }
         }
     }

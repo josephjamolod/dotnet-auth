@@ -10,7 +10,8 @@ namespace JwtAuthApi.Interfaces
 {
     public interface IFoodItemRepository
     {
-        Task<OperationResult<FoodResponseDto, string>> FindById(int foodId, string sellerId);
+        Task<OperationResult<FoodResponseDto, string>> GetByIdAsync(int foodId, string sellerId);
         Task<OperationResult<FoodItem, string>> CreateAsync(CreateFoodItemDto model, string sellerId);
+        Task<OperationResult<object, ErrorResult>> UploadFoodImagesAsync(int foodId, List<IFormFile> images, bool setFirstAsMain, string sellerId);
     }
 }
