@@ -10,10 +10,22 @@ namespace JwtAuthApi.Models
     {
         [Key]
         public int Id { get; set; }
+
+        [Required]
         public string ImageUrl { get; set; } = string.Empty;
 
-        //Foreign Key
+        [Required]
+        public string PublicId { get; set; } = string.Empty; // Cloudinary public ID for deletion
+
+        public bool IsMainImage { get; set; } = false; // Flag for primary image
+
+        public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+
+        // Foreign Key
+        [Required]
         public int FoodItemId { get; set; }
+
+        // Navigation property
         public FoodItem FoodItem { get; set; } = null!;
     }
 }

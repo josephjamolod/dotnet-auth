@@ -39,5 +39,18 @@ namespace JwtAuthApi.Repository
             return OperationResult<FoodResponseDto, string>.Success(foodItemResponse);
         }
 
+        public async Task<OperationResult<FoodItem, string>> CreateAsync(CreateFoodItemDto model, string sellerId)
+        {
+            var seller = await _userManager.FindByIdAsync(sellerId);
+            if (seller == null)
+                return OperationResult<FoodItem, string>.Failure("Seller Not Found");
+            var foodItem = model.CreateFoodItemDtoToFoodItem();
+            foodItem.SellerId = seller.Id;
+
+            _context.FoodItems.Add(foodItem);
+            await _context.SaveChangesAsync();
+
+            return OperationResult<FoodItem, string>.Success(foodItem);
+        }
     }
 }

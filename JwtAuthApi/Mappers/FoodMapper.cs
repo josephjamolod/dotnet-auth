@@ -9,6 +9,20 @@ namespace JwtAuthApi.Mappers
 {
     public static class FoodMapper
     {
+        public static FoodItem CreateFoodItemDtoToFoodItem(this CreateFoodItemDto foodItem)
+        {
+            return new FoodItem()
+            {
+                Name = foodItem.Name,
+                Description = foodItem.Description,
+                Price = foodItem.Price,
+                Category = foodItem.Category,
+                IsAvailable = foodItem.IsAvailable,
+                PreparationTime = foodItem.PreparationTime,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+
         public static FoodResponseDto FoodItemToFoodResponseDto(this FoodItem f)
         {
             return new FoodResponseDto()

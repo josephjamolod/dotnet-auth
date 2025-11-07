@@ -11,6 +11,6 @@ namespace JwtAuthApi.Interfaces
     public interface IFoodItemRepository
     {
         Task<OperationResult<FoodResponseDto, string>> FindById(int foodId, string sellerId);
-
+        Task<OperationResult<FoodItem, string>> CreateAsync(CreateFoodItemDto model, string sellerId);
     }
 }

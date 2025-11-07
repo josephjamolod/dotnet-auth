@@ -41,5 +41,32 @@ namespace JwtAuthApi.Controllers
             }
         }
 
+        [HttpPost("create")]
+        public async Task<IActionResult> Create([FromBody] CreateFoodItemDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            try
+            {
+                var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var result = await _foodItemRepo.CreateAsync(model, sellerId!);
+                if (!result.IsSuccess)
+                    return NotFound(new { message = result.Error });
+
+                return CreatedAtAction(
+                    nameof(GetById),
+                    new { id = result.Value!.Id },
+                    new
+                    {
+                        message = "Food item created successfully",
+                        id = result.Value.Id,
+                        name = result.Value.Name
+                    });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
+        }
     }
 }
