@@ -94,6 +94,10 @@ namespace JwtAuthApi.Data
                 .HasForeignKey(i => i.FoodItemId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Create index for faster queries
+            builder.Entity<FoodImage>()
+                .HasIndex(fi => fi.FoodItemId);
+
             // Seed roles using migration approach
             builder.Entity<IdentityRole>().HasData(
                 new IdentityRole
