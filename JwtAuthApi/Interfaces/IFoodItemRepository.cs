@@ -13,5 +13,6 @@ namespace JwtAuthApi.Interfaces
         Task<OperationResult<FoodResponseDto, string>> GetByIdAsync(int foodId, string sellerId);
         Task<OperationResult<FoodItem, string>> CreateAsync(CreateFoodItemDto model, string sellerId);
         Task<OperationResult<object, ErrorResult>> UploadFoodImagesAsync(int foodId, List<IFormFile> images, bool setFirstAsMain, string sellerId);
+        Task<OperationResult<object, string>> DeleteFoodImageAsync(int imageId, string sellerId);
     }
 }

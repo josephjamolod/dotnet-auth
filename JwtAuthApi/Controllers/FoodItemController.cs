@@ -98,5 +98,25 @@ namespace JwtAuthApi.Controllers
                 return StatusCode(500, new { message = "Error uploading images" });
             }
         }
+
+        [HttpDelete("images/{imageId}")]
+        public async Task<IActionResult> DeleteFoodImage(int imageId)
+        {
+            try
+            {
+                var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var result = await _foodItemRepo.DeleteFoodImageAsync(imageId, sellerId!);
+
+                if (!result.IsSuccess)
+                    return NotFound(new { message = result.Error });
+
+                return Ok(result.Value);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting image {imageId}");
+                return StatusCode(500, new { message = "Error deleting image" });
+            }
+        }
     }
 }
