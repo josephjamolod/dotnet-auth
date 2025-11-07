@@ -1,0 +1,16 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using JwtAuthApi.Dtos.Foods;
+using JwtAuthApi.Models;
+using JwtAuthApi.Repository.Models;
+
+namespace JwtAuthApi.Interfaces
+{
+    public interface IFoodItemRepository
+    {
+        Task<OperationResult<FoodResponseDto, string>> FindById(int foodId, string sellerId);
+
+    }
+}
