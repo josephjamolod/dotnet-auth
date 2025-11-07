@@ -118,5 +118,26 @@ namespace JwtAuthApi.Controllers
                 return StatusCode(500, new { message = "Error deleting image" });
             }
         }
+
+        [HttpPatch("images/{imageId}/set-main")]
+        public async Task<IActionResult> SetMainFoodImage(int imageId)
+        {
+            try
+            {
+                var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                var result = await _foodItemRepo.SetMainFoodImageAsync(imageId, sellerId!);
+
+                if (!result.IsSuccess)
+                    return NotFound(new { message = result.Error });
+
+                return Ok(result.Value);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error setting main image {imageId}");
+                return StatusCode(500, new { message = "Error updating main image" });
+            }
+        }
     }
 }

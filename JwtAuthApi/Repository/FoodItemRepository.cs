@@ -179,5 +179,34 @@ namespace JwtAuthApi.Repository
 
             return OperationResult<object, string>.Success(new { message = "Image deleted successfully" });
         }
+
+        public async Task<OperationResult<object, string>> SetMainFoodImageAsync(int imageId, string sellerId)
+        {
+            var image = await _context.FoodImages
+                          .Include(fi => fi.FoodItem)
+                              .ThenInclude(f => f.ImageUrls)
+                          .FirstOrDefaultAsync(fi => fi.Id == imageId && fi.FoodItem.SellerId == sellerId);
+
+            if (image == null)
+                return OperationResult<object, string>.Failure("Image not found");
+
+            // Remove main flag from all other images
+            foreach (var img in image.FoodItem.ImageUrls)
+            {
+                img.IsMainImage = false;
+            }
+
+            // Set this image as main
+            image.IsMainImage = true;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"Main image set for food item {image.FoodItemId}: {imageId}");
+
+            return OperationResult<object, string>.Success(new
+            {
+                message = "Main image updated successfully",
+                imageUrl = image.ImageUrl
+            });
+        }
     }
 }
