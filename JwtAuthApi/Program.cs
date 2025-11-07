@@ -123,6 +123,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<ISellerRepository, SellerRepository>();
 builder.Services.AddScoped<IFoodItemRepository, FoodItemRepository>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
 //Register background service for token cleanup
 builder.Services.AddHostedService<TokenCleanupService>();
