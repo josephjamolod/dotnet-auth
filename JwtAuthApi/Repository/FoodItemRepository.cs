@@ -208,5 +208,28 @@ namespace JwtAuthApi.Repository
                 imageUrl = image.ImageUrl
             });
         }
+
+        public async Task<OperationResult<object, string>> UpdateFoodItemAsync(int foodId, string sellerId, UpdateFoodItemDto model)
+        {
+            var foodItem = await _context.FoodItems
+                        .FirstOrDefaultAsync(f => f.Id == foodId && f.SellerId == sellerId);
+
+            if (foodItem == null)
+                return OperationResult<object, string>.Failure("Food item not found");
+
+            model.UpdateFoodItemDtoToFoodItem(foodItem);
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"Food item updated: {foodItem.Name}");
+
+            return OperationResult<object, string>.Success(new
+            {
+                message = "Food item updated successfully",
+                id = foodItem.Id,
+                name = foodItem.Name
+            });
+
+        }
     }
 }

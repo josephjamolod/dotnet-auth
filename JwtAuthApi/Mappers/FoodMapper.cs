@@ -52,7 +52,6 @@ namespace JwtAuthApi.Mappers
                 UpdatedAt = f.UpdatedAt
             }
             ;
-
         }
     }
 }

@@ -139,5 +139,28 @@ namespace JwtAuthApi.Controllers
                 return StatusCode(500, new { message = "Error updating main image" });
             }
         }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateFoodItem(int id, [FromBody] UpdateFoodItemDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                var result = await _foodItemRepo.UpdateFoodItemAsync(id, sellerId!, model);
+                if (!result.IsSuccess)
+                    return NotFound(new { message = result.Error });
+
+                return Ok(result.Value);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating food item {id}");
+                return StatusCode(500, new { message = "Error updating food item" });
+            }
+        }
     }
 }
