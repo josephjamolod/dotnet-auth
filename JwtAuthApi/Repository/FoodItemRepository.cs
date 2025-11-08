@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using JwtAuthApi.Data;
 using JwtAuthApi.Dtos.Foods;
 using JwtAuthApi.Helpers.HelperObjects;
+using JwtAuthApi.Helpers.ImageValidator;
 using JwtAuthApi.Helpers.QueryBuilders;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Mappers;
@@ -118,23 +119,13 @@ namespace JwtAuthApi.Repository
                 });
 
             var uploadedImages = new List<object>();
-            var isFirstImage = !foodItem.ImageUrls.Any();
+            var isFirstImage = foodItem.ImageUrls.Count != 0;
 
             foreach (var (image, index) in images.Select((img, idx) => (img, idx)))
             {
-                // Validate file
-                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-                var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
-
-                if (!allowedExtensions.Contains(extension))
+                if (!ValidateImage.IsValidImage(image))
                 {
-                    _logger.LogWarning($"Invalid file type: {extension}");
-                    continue;
-                }
-
-                if (image.Length > 5 * 1024 * 1024) // 5MB
-                {
-                    _logger.LogWarning($"File too large: {image.Length} bytes");
+                    _logger.LogWarning($"Invalid file type Or File size must not exceed 5MB.");
                     continue;
                 }
 
@@ -156,9 +147,7 @@ namespace JwtAuthApi.Repository
                     ImageUrl = uploadResult.SecureUrl.ToString(),
                     PublicId = uploadResult.PublicId,
                     FoodItemId = foodId,
-                    //When uploading images for a food item, only one image becomes the “main” one.
-                    //The first uploaded image gets priority,but only if allowed(setFirstAsMain = true).
-                    //If the food item already has a main image, it won’t be overridden unless no main image exists.
+                    //Ensure only 1 image is main
                     IsMainImage = (isFirstImage && index == 0 && setFirstAsMain) ||
                                  (!isFirstImage && index == 0 && setFirstAsMain && !foodItem.ImageUrls.Any(img => img.IsMainImage)),
                     UploadedAt = DateTime.UtcNow

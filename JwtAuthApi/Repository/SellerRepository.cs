@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using JwtAuthApi.Data;
 using JwtAuthApi.Dtos.Seller;
 using JwtAuthApi.Helpers.HelperObjects;
+using JwtAuthApi.Helpers.ImageValidator;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Mappers;
 using JwtAuthApi.Models;
@@ -96,7 +97,7 @@ namespace JwtAuthApi.Repository
                 });
 
             // Validate file 
-            if (!IsValidImage(logo))
+            if (!ValidateImage.IsValidImage(logo))
                 return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
                 {
                     ErrCode = StatusCodes.Status400BadRequest,
@@ -160,20 +161,6 @@ namespace JwtAuthApi.Repository
                     uploadedAt = logoImage.UploadedAt
                 }
             });
-        }
-
-        private static bool IsValidImage(IFormFile logo)
-        {
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-            var extension = Path.GetExtension(logo.FileName).ToLowerInvariant();
-
-            if (!allowedExtensions.Contains(extension))
-                return false;
-
-            // Validate file size (5MB)
-            if (logo.Length > 5 * 1024 * 1024)
-                return false;
-            return true;
         }
     }
 }

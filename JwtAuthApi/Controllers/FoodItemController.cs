@@ -94,13 +94,12 @@ namespace JwtAuthApi.Controllers
            [FromForm] List<IFormFile> images,
            [FromForm] bool setFirstAsMain = true)
         {
-            if (images == null || !images.Any())
+            if (images == null || images.Count != 0)
                 return BadRequest(new { message = "No images uploaded" });
 
             // Validate max 5 images
             if (images.Count > 5)
                 return BadRequest(new { message = "Maximum 5 images allowed" });
-
             try
             {
                 var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
