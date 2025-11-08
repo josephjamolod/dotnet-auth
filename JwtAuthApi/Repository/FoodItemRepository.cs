@@ -261,7 +261,38 @@ namespace JwtAuthApi.Repository
                 id = foodItem.Id,
                 name = foodItem.Name
             });
+        }
 
+        public async Task<OperationResult<object, string>> DeleteFoodItemAsync(int foodId, string sellerId)
+        {
+            var foodItem = await _context.FoodItems
+                .Include(f => f.ImageUrls)
+                .FirstOrDefaultAsync(f => f.Id == foodId && f.SellerId == sellerId);
+
+            if (foodItem == null)
+                return OperationResult<object, string>.Failure("Food item not found");
+            // return NotFound(new { message = "Food item not found" });
+
+            // Delete all images from Cloudinary
+            foreach (var image in foodItem.ImageUrls)
+            {
+                try
+                {
+                    await _cloudinaryService.DeleteImageAsync(image.PublicId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Failed to delete image {image.PublicId} from Cloudinary");
+                }
+            }
+
+            // Delete food item (cascade will delete FoodImage records)
+            _context.FoodItems.Remove(foodItem);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"Food item deleted: {foodItem.Name}");
+
+            return OperationResult<object, string>.Success(new { message = "Food item and all images deleted successfully" });
         }
     }
 }

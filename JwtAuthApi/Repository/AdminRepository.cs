@@ -17,12 +17,12 @@ namespace JwtAuthApi.Repository
 {
     public class AdminRepository : IAdminRepository
     {
-        private readonly ApplicationDBContext _context;
+
         private readonly IEmailService _emailService;
         private readonly UserManager<AppUser> _userManager;
-        public AdminRepository(ApplicationDBContext context, IEmailService emailService, UserManager<AppUser> userManager)
+        public AdminRepository(IEmailService emailService, UserManager<AppUser> userManager)
         {
-            _context = context;
+
             _emailService = emailService;
             _userManager = userManager;
         }

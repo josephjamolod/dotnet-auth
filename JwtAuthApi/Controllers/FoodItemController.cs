@@ -178,5 +178,25 @@ namespace JwtAuthApi.Controllers
                 return StatusCode(500, new { message = "Error updating food item" });
             }
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteFoodItem(int id)
+        {
+            try
+            {
+                var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                var result = await _foodItemRepo.DeleteFoodItemAsync(id, sellerId!);
+                if (!result.IsSuccess)
+                    return NotFound(new { message = result.Error });
+
+                return Ok(result.Value);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting food item {id}");
+                return StatusCode(500, new { message = "Error deleting food item" });
+            }
+        }
     }
 }
