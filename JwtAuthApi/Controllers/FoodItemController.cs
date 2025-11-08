@@ -5,9 +5,10 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using JwtAuthApi.Data;
 using JwtAuthApi.Dtos.Foods;
+using JwtAuthApi.Helpers.HelperObjects;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Models;
-using JwtAuthApi.Repository.HelperObjects;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

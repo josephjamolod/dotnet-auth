@@ -5,11 +5,12 @@ using System.Threading.Tasks;
 using JwtAuthApi.Data;
 using JwtAuthApi.Dtos.Admin;
 using JwtAuthApi.Dtos.Seller;
+using JwtAuthApi.Helpers.HelperObjects;
+using JwtAuthApi.Helpers.QueryBuilders;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Mappers;
 using JwtAuthApi.Models;
-using JwtAuthApi.Repository.Models;
-using JwtAuthApi.Repository.QueryBuilders;
+
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 

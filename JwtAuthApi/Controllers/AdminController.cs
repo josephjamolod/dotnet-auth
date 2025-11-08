@@ -4,8 +4,8 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using JwtAuthApi.Dtos.Admin;
+using JwtAuthApi.Helpers.HelperObjects;
 using JwtAuthApi.Interfaces;
-using JwtAuthApi.Repository.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

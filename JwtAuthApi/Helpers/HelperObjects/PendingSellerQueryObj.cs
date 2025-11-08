@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace JwtAuthApi.Repository.Models
+namespace JwtAuthApi.Helpers.HelperObjects
 {
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum SortByOption

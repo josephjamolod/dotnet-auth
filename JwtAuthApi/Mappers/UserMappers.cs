@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using JwtAuthApi.Dtos;
+using JwtAuthApi.Dtos.Auth;
 using JwtAuthApi.Dtos.Seller;
 using JwtAuthApi.Dtos.User;
 using JwtAuthApi.Models;

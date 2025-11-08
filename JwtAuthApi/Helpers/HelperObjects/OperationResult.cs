@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace JwtAuthApi.Repository.Models
+namespace JwtAuthApi.Helpers.HelperObjects
 {
     public class OperationResult<T, E>
     {

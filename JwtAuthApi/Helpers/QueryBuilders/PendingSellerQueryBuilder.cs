@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using JwtAuthApi.Helpers.HelperObjects;
 using JwtAuthApi.Models;
-using JwtAuthApi.Repository.Models;
 
-namespace JwtAuthApi.Repository.QueryBuilders
+namespace JwtAuthApi.Helpers.QueryBuilders
 {
     public class PendingSellerQueryBuilder
     {

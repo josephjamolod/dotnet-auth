@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using JwtAuthApi.Data;
 using JwtAuthApi.Dtos;
+using JwtAuthApi.Dtos.Auth;
 using JwtAuthApi.Dtos.Seller;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Models;

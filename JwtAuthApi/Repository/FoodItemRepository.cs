@@ -4,12 +4,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using JwtAuthApi.Data;
 using JwtAuthApi.Dtos.Foods;
+using JwtAuthApi.Helpers.HelperObjects;
+using JwtAuthApi.Helpers.QueryBuilders;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Mappers;
 using JwtAuthApi.Models;
-using JwtAuthApi.Repository.HelperObjects;
-using JwtAuthApi.Repository.Models;
-using JwtAuthApi.Repository.QueryBuilders;
+
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 

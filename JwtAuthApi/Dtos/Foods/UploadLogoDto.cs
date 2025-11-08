@@ -4,11 +4,11 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace JwtAuthApi.Dtos.Auth
+namespace JwtAuthApi.Dtos.Foods
 {
-    public class RefreshTokenDto
+    public class UploadLogoDto
     {
         [Required]
-        public string RefreshToken { get; set; } = string.Empty;
+        public required IFormFile File { get; set; }
     }
 }

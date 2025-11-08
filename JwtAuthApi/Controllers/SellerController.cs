@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using JwtAuthApi.Dtos.Foods;
 using JwtAuthApi.Dtos.Seller;
 using JwtAuthApi.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -82,8 +83,11 @@ namespace JwtAuthApi.Controllers
 
         //todo: upload logo
         [HttpPost("logo")]
-        public async Task<IActionResult> UploadLogo([FromForm] IFormFile logo)
+        public async Task<IActionResult> UploadLogo([FromForm] UploadLogoDto model)
         {
+            var logo = model.File;
+            if (logo == null || logo.Length == 0)
+                return BadRequest(new { message = "No file uploaded" });
             try
             {
                 var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

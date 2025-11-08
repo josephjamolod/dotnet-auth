@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using JwtAuthApi.Dtos.Admin;
-using JwtAuthApi.Repository.Models;
+using JwtAuthApi.Helpers.HelperObjects;
+
 
 namespace JwtAuthApi.Interfaces
 {

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace JwtAuthApi.Repository.HelperObjects
+namespace JwtAuthApi.Helpers.HelperObjects
 {
     public enum FoodsQueryOption
     {
