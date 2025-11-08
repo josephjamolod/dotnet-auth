@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using JwtAuthApi.Models;
 
 namespace JwtAuthApi.Dtos.Seller
 {
@@ -17,7 +18,7 @@ namespace JwtAuthApi.Dtos.Seller
         public string? BusinessNumber { get; set; }
 
         public string? Description { get; set; }
-        public string? LogoUrl { get; set; }
+        public Logo? Logo { get; set; }
 
         // Address
         public string? Address { get; set; }

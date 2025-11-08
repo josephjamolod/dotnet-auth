@@ -25,7 +25,6 @@ namespace JwtAuthApi.Models
         public string? City { get; set; }
         public string? State { get; set; }
         public string? PostalCode { get; set; }
-        public string? LogoUrl { get; set; }
         public string? Description { get; set; }
 
         //Seller approval status
@@ -48,5 +47,6 @@ namespace JwtAuthApi.Models
         public List<FoodItem> FoodItems { get; set; } = new();
         public List<Order> Orders { get; set; } = new();
         public List<Review> Reviews { get; set; } = new();
+        public Logo? Logo { get; set; }
     }
 }

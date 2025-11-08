@@ -18,6 +18,7 @@ namespace JwtAuthApi.Data
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<FoodImage> FoodImages { get; set; }
+        public DbSet<Logo> Logos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -97,6 +98,16 @@ namespace JwtAuthApi.Data
             // Create index for faster queries
             builder.Entity<FoodImage>()
                 .HasIndex(fi => fi.FoodItemId);
+
+            builder.Entity<Logo>()
+                .HasOne(l => l.Seller)
+                .WithOne(S => S.Logo)
+                .HasForeignKey<Logo>(l => l.SellerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Logo>()
+                .HasIndex(l => l.Id)
+                .IsUnique();
 
             // Seed roles using migration approach
             builder.Entity<IdentityRole>().HasData(

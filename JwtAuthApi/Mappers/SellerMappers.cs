@@ -39,7 +39,7 @@ namespace JwtAuthApi.Mappers
                 BusinessName = seller.BusinessName,
                 BusinessNumber = seller.BusinessNumber,
                 Description = seller.Description,
-                LogoUrl = seller.LogoUrl,
+                Logo = seller.Logo,
 
                 // Address
                 Address = seller.Address,
