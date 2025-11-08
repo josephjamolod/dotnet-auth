@@ -12,7 +12,7 @@ namespace JwtAuthApi.Repository.Models
         Name,
         LastName
     }
-    public class SellerQueryObject
+    public class PendingSellerQueryObj
     {
         public string? FirstName { get; set; } = null;
         public string? LastName { get; set; } = null;

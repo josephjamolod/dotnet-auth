@@ -10,6 +10,6 @@ namespace JwtAuthApi.Interfaces
     public interface IAdminRepository
     {
         Task<OperationResult<object, string>> ApproveSellerAsync(SellerApprovalDto model, string adminId);
-        Task<object> GetPendingSellersAsync(SellerQueryObject queryObject);
+        Task<object> GetPendingSellersAsync(PendingSellerQueryObj queryObject);
     }
 }

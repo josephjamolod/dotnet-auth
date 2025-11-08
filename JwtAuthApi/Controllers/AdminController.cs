@@ -45,7 +45,7 @@ namespace JwtAuthApi.Controllers
         }
         [HttpGet("pending")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetPendingSellers([FromQuery] SellerQueryObject queryObject)
+        public async Task<IActionResult> GetPendingSellers([FromQuery] PendingSellerQueryObj queryObject)
         {
             try
             {
