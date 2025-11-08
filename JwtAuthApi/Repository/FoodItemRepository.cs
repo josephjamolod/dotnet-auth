@@ -241,6 +241,28 @@ namespace JwtAuthApi.Repository
             });
         }
 
+        public async Task<OperationResult<object, string>> SetAvailabilityAsync(int foodId, bool isAvailable, string sellerId)
+        {
+            var foodItem = await _context.FoodItems
+                    .FirstOrDefaultAsync(f => f.Id == foodId && f.SellerId == sellerId);
+
+            if (foodItem == null)
+                return OperationResult<object, string>.Failure("Food item not found");
+
+            foodItem.IsAvailable = isAvailable;
+            foodItem.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"Availability changed for {foodItem.Name}: {isAvailable}");
+
+            return OperationResult<object, string>.Success(new
+            {
+                message = $"Item marked as {(isAvailable ? "available" : "out of stock")}",
+                name = foodItem.Name,
+                isAvailable = foodItem.IsAvailable
+            });
+        }
+
         public async Task<OperationResult<object, string>> UpdateFoodItemAsync(int foodId, string sellerId, UpdateFoodItemDto model)
         {
             var foodItem = await _context.FoodItems

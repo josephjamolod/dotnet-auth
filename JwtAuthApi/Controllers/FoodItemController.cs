@@ -156,6 +156,27 @@ namespace JwtAuthApi.Controllers
             }
         }
 
+        [HttpPatch("{id}/availability")]
+        public async Task<IActionResult> SetAvailability(int id, [FromBody] bool isAvailable)
+        {
+            try
+            {
+                var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                var result = await _foodItemRepo.SetAvailabilityAsync(id, isAvailable, sellerId!);
+
+                if (!result.IsSuccess)
+                    return NotFound(new { message = result.Error });
+
+                return Ok(result.Value);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error setting availability for item {id}");
+                return StatusCode(500, new { message = "Error updating availability" });
+            }
+        }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateFoodItem(int id, [FromBody] UpdateFoodItemDto model)
         {
