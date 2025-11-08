@@ -62,7 +62,7 @@ namespace JwtAuthApi.Repository
                 businessName = seller.BusinessName
             });
         }
-        public async Task<object> GetPendingSellersAsync(SellerQueryObject queryObject)
+        public async Task<object> GetPendingSellersAsync(PendingSellerQueryObj queryObject)
         {
             var sellersQuery = _userManager.Users
                 .Where(u => u.BusinessName != null && !u.IsApproved)
