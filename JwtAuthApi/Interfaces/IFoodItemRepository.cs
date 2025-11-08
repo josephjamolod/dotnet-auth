@@ -4,12 +4,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using JwtAuthApi.Dtos.Foods;
 using JwtAuthApi.Models;
+using JwtAuthApi.Repository.HelperObjects;
 using JwtAuthApi.Repository.Models;
 
 namespace JwtAuthApi.Interfaces
 {
     public interface IFoodItemRepository
     {
+        Task<object> GetAllFoodItemsAsync(AllFoodsQuery queryObject, string sellerId);
         Task<OperationResult<FoodResponseDto, string>> GetByIdAsync(int foodId, string sellerId);
         Task<OperationResult<FoodItem, string>> CreateAsync(CreateFoodItemDto model, string sellerId);
         Task<OperationResult<object, ErrorResult>> UploadFoodImagesAsync(int foodId, List<IFormFile> images, bool setFirstAsMain, string sellerId);

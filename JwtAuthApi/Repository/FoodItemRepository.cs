@@ -7,7 +7,9 @@ using JwtAuthApi.Dtos.Foods;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Mappers;
 using JwtAuthApi.Models;
+using JwtAuthApi.Repository.HelperObjects;
 using JwtAuthApi.Repository.Models;
+using JwtAuthApi.Repository.QueryBuilders;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,6 +28,43 @@ namespace JwtAuthApi.Repository
             _context = context;
             _cloudinaryService = cloudinaryService;
             _logger = logger;
+        }
+
+        public async Task<object> GetAllFoodItemsAsync(AllFoodsQuery queryObject, string sellerId)
+        {
+            var query = _context.FoodItems
+                  .Include(f => f.ImageUrls)
+                  .Where(f => f.SellerId == sellerId)
+                  .AsQueryable();
+
+            // Apply filters
+            query = FoodItemQueryBuilder.ApplyFilters(query, queryObject);
+            // Apply sorting
+            query = FoodItemQueryBuilder.ApplySorting(query, queryObject);
+
+            // Get total count before pagination
+            var totalCount = await query.CountAsync();
+            // Apply pagination
+            var skip = (queryObject.PageNumber - 1) * queryObject.PageSize;
+
+            //  Materialize the data from database
+            var foodItemsFromDb = await query
+                .Skip(skip)
+                .Take(queryObject.PageSize)
+                .ToListAsync();
+
+            //  Apply the mapper in-memory
+            var foodItems = foodItemsFromDb
+                .Select(f => f.FoodItemToFoodResponseDto())
+                .ToList();
+
+            return new
+            {
+                total = totalCount,
+                pageNumber = queryObject.PageNumber,
+                pageSize = queryObject.PageSize,
+                items = foodItems
+            };
         }
 
         public async Task<OperationResult<FoodResponseDto, string>> GetByIdAsync(int foodId, string sellerId)
@@ -70,7 +109,6 @@ namespace JwtAuthApi.Repository
                     ErrDescription = "Food item not found"
                 });
 
-
             // Check total images after upload
             if (foodItem.ImageUrls.Count + images.Count > 5)
                 return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
@@ -79,11 +117,8 @@ namespace JwtAuthApi.Repository
                     ErrDescription = $"Cannot upload {images.Count} images. Maximum 5 images total. Current: {foodItem.ImageUrls.Count}"
                 });
 
-
-
             var uploadedImages = new List<object>();
             var isFirstImage = !foodItem.ImageUrls.Any();
-
 
             foreach (var (image, index) in images.Select((img, idx) => (img, idx)))
             {
@@ -161,20 +196,17 @@ namespace JwtAuthApi.Repository
 
             if (image == null)
                 return OperationResult<object, string>.Failure("Image not found");
-            // return NotFound(new { message = "Image not found" });
 
             // Delete from Cloudinary
             var deleteResult = await _cloudinaryService.DeleteImageAsync(image.PublicId);
 
             if (deleteResult.Result != "ok")
-            {
                 _logger.LogWarning($"Failed to delete image from Cloudinary: {image.PublicId}");
-            }
+
 
             // Delete from database
             _context.FoodImages.Remove(image);
             await _context.SaveChangesAsync();
-
             _logger.LogInformation($"Image deleted: {image.PublicId}");
 
             return OperationResult<object, string>.Success(new { message = "Image deleted successfully" });

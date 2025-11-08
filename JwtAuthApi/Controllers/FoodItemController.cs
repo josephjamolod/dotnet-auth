@@ -7,6 +7,7 @@ using JwtAuthApi.Data;
 using JwtAuthApi.Dtos.Foods;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Models;
+using JwtAuthApi.Repository.HelperObjects;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,21 @@ namespace JwtAuthApi.Controllers
         {
             _foodItemRepo = foodItemRepo;
             _logger = logger;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllFoodItems([FromQuery] AllFoodsQuery queryObject)
+        {
+            try
+            {
+                var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var result = await _foodItemRepo.GetAllFoodItemsAsync(queryObject, sellerId!);
+                return Ok(result);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "Error retrieving food items" });
+            }
         }
 
         [HttpGet("{id:int}")]
