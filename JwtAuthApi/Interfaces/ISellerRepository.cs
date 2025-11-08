@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using JwtAuthApi.Dtos.Seller;
-using JwtAuthApi.Repository.Models;
+using JwtAuthApi.Repository.HelperObjects;
+
+
 
 namespace JwtAuthApi.Interfaces
 {
@@ -12,5 +14,6 @@ namespace JwtAuthApi.Interfaces
         Task<OperationResult<SellerProfileDto, string>> GetSellerProfileAsync(string sellerId);
         Task<OperationResult<object, ErrorResult>> UpdateSellerAsync(UpdateSellerProfileDto model, string sellerId);
         Task<OperationResult<object, string>> ToggleStatusAsync(string sellerId);
+        Task<OperationResult<object, ErrorResult>> UploadLogoAsync(IFormFile logo, string sellerId);
     }
 }

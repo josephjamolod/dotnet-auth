@@ -81,5 +81,23 @@ namespace JwtAuthApi.Controllers
         }
 
         //todo: upload logo
+        [HttpPost("logo")]
+        public async Task<IActionResult> UploadLogo([FromForm] IFormFile logo)
+        {
+            try
+            {
+                var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var result = await _sellerRepo.UploadLogoAsync(logo, sellerId!);
+                if (!result.IsSuccess)
+                    return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
+
+                return Ok(result.Value);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+        }
     }
 }
