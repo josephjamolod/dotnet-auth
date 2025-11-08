@@ -18,7 +18,7 @@ namespace JwtAuthApi.Dtos.Seller
         public string? BusinessNumber { get; set; }
 
         public string? Description { get; set; }
-        public Logo? Logo { get; set; }
+        public string? Logo { get; set; }
 
         // Address
         public string? Address { get; set; }

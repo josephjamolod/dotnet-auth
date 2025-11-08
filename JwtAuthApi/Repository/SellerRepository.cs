@@ -30,7 +30,11 @@ namespace JwtAuthApi.Repository
 
         public async Task<OperationResult<SellerProfileDto, string>> GetSellerProfileAsync(string sellerId)
         {
-            var seller = await _userManager.FindByIdAsync(sellerId);
+
+            var seller = await _context.Users
+                .Include(u => u.Logo)
+                .FirstOrDefaultAsync(u => u.Id == sellerId);
+
             if (seller == null)
                 return OperationResult<SellerProfileDto, string>.Failure("Seller Not Found");
 
@@ -144,6 +148,7 @@ namespace JwtAuthApi.Repository
 
             // Update seller's UpdatedAt timestamp
             seller.UpdatedAt = DateTime.UtcNow;
+
             await _userManager.UpdateAsync(seller);
 
             // Save all changes
