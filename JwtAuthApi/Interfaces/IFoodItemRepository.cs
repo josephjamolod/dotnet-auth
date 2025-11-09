@@ -10,7 +10,7 @@ using JwtAuthApi.Models;
 
 namespace JwtAuthApi.Interfaces
 {
-    public interface IFoodItemRepository
+    public interface ISellerFoodItemRepository
     {
         Task<object> GetAllFoodItemsAsync(AllFoodsQuery queryObject, string sellerId);
         Task<OperationResult<FoodResponseDto, string>> GetByIdAsync(int foodId, string sellerId);

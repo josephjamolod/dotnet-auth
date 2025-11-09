@@ -16,14 +16,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JwtAuthApi.Repository
 {
-    public class FoodItemRepository : IFoodItemRepository
+    public class SellerFoodItemRepository : ISellerFoodItemRepository
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly ApplicationDBContext _context;
         private readonly ICloudinaryService _cloudinaryService;
-        private readonly ILogger<FoodItemRepository> _logger;
+        private readonly ILogger<SellerFoodItemRepository> _logger;
 
-        public FoodItemRepository(UserManager<AppUser> userManager, ApplicationDBContext context, ICloudinaryService cloudinaryService, ILogger<FoodItemRepository> logger)
+        public SellerFoodItemRepository(UserManager<AppUser> userManager, ApplicationDBContext context, ICloudinaryService cloudinaryService, ILogger<SellerFoodItemRepository> logger)
         {
             _userManager = userManager;
             _context = context;

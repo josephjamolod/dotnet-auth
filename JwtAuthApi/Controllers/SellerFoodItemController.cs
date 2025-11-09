@@ -18,12 +18,12 @@ namespace JwtAuthApi.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Roles = "Seller")]
-    public class FoodItemController : ControllerBase
+    public class SellerFoodItemController : ControllerBase
     {
-        private readonly IFoodItemRepository _foodItemRepo;
-        private readonly ILogger<FoodItemController> _logger;
+        private readonly ISellerFoodItemRepository _foodItemRepo;
+        private readonly ILogger<SellerFoodItemController> _logger;
         private string GetSellerId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
-        public FoodItemController(IFoodItemRepository foodItemRepo, ILogger<FoodItemController> logger)
+        public SellerFoodItemController(ISellerFoodItemRepository foodItemRepo, ILogger<SellerFoodItemController> logger)
         {
             _foodItemRepo = foodItemRepo;
             _logger = logger;
