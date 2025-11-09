@@ -1,0 +1,59 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using JwtAuthApi.Data;
+using JwtAuthApi.Helpers.HelperObjects;
+using JwtAuthApi.Helpers.QueryBuilders;
+using JwtAuthApi.Interfaces;
+using JwtAuthApi.Mappers;
+using Microsoft.EntityFrameworkCore;
+
+namespace JwtAuthApi.Repository
+{
+    public class FoodItemRespository : IFoodItemRespository
+    {
+        private readonly ApplicationDBContext _context;
+        public FoodItemRespository(ApplicationDBContext context)
+        {
+            _context = context;
+        }
+        public async Task<object> GetAllFoodItemsAsync(AllFoodsQuery queryObject)
+        {
+            var query = _context.FoodItems
+                  .Include(f => f.Seller)
+                  .Include(f => f.ImageUrls)
+                  .AsQueryable();
+
+            // Apply filters
+            query = FoodItemQueryBuilder.ApplyFilters(query, queryObject);
+            // Apply sorting
+            query = FoodItemQueryBuilder.ApplySorting(query, queryObject);
+
+            // Get total count before pagination
+            var totalCount = await query.CountAsync();
+            // Apply pagination
+            var skip = (queryObject.PageNumber - 1) * queryObject.PageSize;
+
+            //  Materialize the data from database
+            var foodItemsFromDb = await query
+                .Skip(skip)
+                .Take(queryObject.PageSize)
+                .ToListAsync();
+
+            //  Apply the mapper in-memory
+            var foodItems = foodItemsFromDb
+                .Select(f => f.FoodItemToFoodResponseDto())
+                .ToList();
+
+            return new
+            {
+                total = totalCount,
+                pageNumber = queryObject.PageNumber,
+                pageSize = queryObject.PageSize,
+                items = foodItems
+            };
+        }
+
+    }
+}

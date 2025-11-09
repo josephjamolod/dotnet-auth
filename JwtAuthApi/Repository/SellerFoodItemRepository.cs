@@ -31,7 +31,7 @@ namespace JwtAuthApi.Repository
             _logger = logger;
         }
 
-        public async Task<object> GetAllFoodItemsAsync(AllFoodsQuery queryObject, string sellerId)
+        public async Task<object> GetSellerAllFoodItemsAsync(AllFoodsQuery queryObject, string sellerId)
         {
             var query = _context.FoodItems
                   .Include(f => f.ImageUrls)
