@@ -14,12 +14,12 @@ namespace JwtAuthApi.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Roles = "Seller")]
-    public class SellerController : ControllerBase
+    public class SellerProfileController : ControllerBase
     {
-        private readonly ISellerRepository _sellerRepo;
-        private readonly ILogger<SellerController> _logger;
+        private readonly ISellerProfileRepository _sellerRepo;
+        private readonly ILogger<SellerProfileController> _logger;
         private string GetSellerId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
-        public SellerController(ISellerRepository sellerRepo, ILogger<SellerController> logger)
+        public SellerProfileController(ISellerProfileRepository sellerRepo, ILogger<SellerProfileController> logger)
         {
             _sellerRepo = sellerRepo;
             _logger = logger;

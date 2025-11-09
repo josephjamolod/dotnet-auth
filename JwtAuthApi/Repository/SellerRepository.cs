@@ -9,19 +9,18 @@ using JwtAuthApi.Helpers.ImageValidator;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Mappers;
 using JwtAuthApi.Models;
-
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace JwtAuthApi.Repository
 {
-    public class SellerRepository : ISellerRepository
+    public class SellerProfileRepository : ISellerProfileRepository
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly ApplicationDBContext _context;
         private readonly ICloudinaryService _cloudinaryService;
-        public SellerRepository(UserManager<AppUser> userManager, ApplicationDBContext context, ICloudinaryService cloudinary)
+        public SellerProfileRepository(UserManager<AppUser> userManager, ApplicationDBContext context, ICloudinaryService cloudinary)
         {
             _userManager = userManager;
             _context = context;

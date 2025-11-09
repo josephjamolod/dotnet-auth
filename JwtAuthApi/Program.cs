@@ -121,7 +121,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
-builder.Services.AddScoped<ISellerRepository, SellerRepository>();
+builder.Services.AddScoped<ISellerProfileRepository, SellerProfileRepository>();
 builder.Services.AddScoped<IFoodItemRepository, FoodItemRepository>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
