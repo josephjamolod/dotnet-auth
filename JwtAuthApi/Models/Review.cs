@@ -20,8 +20,6 @@ namespace JwtAuthApi.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-
-
         // Foreign Key that connect each Review to a Customer
         [Required]
         public string CustomerId { get; set; } = string.Empty;

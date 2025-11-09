@@ -25,7 +25,7 @@ namespace JwtAuthApi.Models
         [Required]
         public int OrderId { get; set; }
         public Order Order { get; set; } = null!;
-        // Foreign Key that connect each oodItemId to a Order
+        // Foreign Key that connect each foodItemId to a Order
         [Required]
         public int FoodItemId { get; set; }
         public FoodItem FoodItem { get; set; } = null!;

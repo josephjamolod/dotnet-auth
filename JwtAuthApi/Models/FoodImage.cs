@@ -25,7 +25,6 @@ namespace JwtAuthApi.Models
         [Required]
         public int FoodItemId { get; set; }
 
-        // Navigation property
         public FoodItem FoodItem { get; set; } = null!;
     }
 }

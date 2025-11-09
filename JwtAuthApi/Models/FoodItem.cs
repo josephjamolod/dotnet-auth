@@ -40,5 +40,6 @@ namespace JwtAuthApi.Models
         public List<OrderItem> OrderItems { get; set; } = new();
         public List<Review> Reviews { get; set; } = new();
         public List<FoodImage> ImageUrls { get; set; } = new();
+        public List<CartItem> CartItems { get; set; } = new();
     }
 }

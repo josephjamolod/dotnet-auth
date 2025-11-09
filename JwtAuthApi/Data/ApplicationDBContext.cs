@@ -20,6 +20,9 @@ namespace JwtAuthApi.Data
         public DbSet<FoodImage> FoodImages { get; set; }
         public DbSet<Logo> Logos { get; set; }
 
+        public DbSet<Cart> Carts { get; set; }
+        public DbSet<CartItem> CartItems { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -107,6 +110,39 @@ namespace JwtAuthApi.Data
 
             builder.Entity<Logo>()
                 .HasIndex(l => l.Id)
+                .IsUnique();
+
+            // Cart to Customer (One-to-One relationship)
+            builder.Entity<Cart>()
+                .HasOne(c => c.Customer)
+                .WithOne(u => u.Cart)
+                .HasForeignKey<Cart>(c => c.CustomerId)
+                .OnDelete(DeleteBehavior.NoAction);  // ✅ Changed from Cascade
+
+            // Cart to Seller (Many-to-One - Optional)
+            builder.Entity<Cart>()
+                .HasOne(c => c.Seller)
+                .WithMany()
+                .HasForeignKey(c => c.SellerId)
+                .OnDelete(DeleteBehavior.SetNull);  // ✅ Keep SetNull (it's optional anyway)
+
+            // CartItem to Cart (Many-to-One)
+            builder.Entity<CartItem>()
+                .HasOne(ci => ci.Cart)
+                .WithMany(c => c.CartItems)
+                .HasForeignKey(ci => ci.CartId)
+                .OnDelete(DeleteBehavior.Cascade);  // ✅ This is fine
+
+            // CartItem to FoodItem (Many-to-One)
+            builder.Entity<CartItem>()
+                .HasOne(ci => ci.FoodItem)
+                .WithMany(f => f.CartItems)
+                .HasForeignKey(ci => ci.FoodItemId)
+                .OnDelete(DeleteBehavior.NoAction);  // ✅ Changed from Restrict
+
+            // Prevent duplicate items in cart
+            builder.Entity<CartItem>()
+                .HasIndex(ci => new { ci.CartId, ci.FoodItemId })
                 .IsUnique();
 
             // Seed roles using migration approach
