@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using JwtAuthApi.Dtos.Foods;
 using JwtAuthApi.Helpers.HelperObjects;
 
 namespace JwtAuthApi.Interfaces
@@ -9,5 +10,6 @@ namespace JwtAuthApi.Interfaces
     public interface IFoodItemRespository
     {
         Task<object> GetAllFoodItemsAsync(AllFoodsQuery queryObject);
+        Task<List<FoodResponseDto>> GetFeaturedItemsAsync();
     }
 }

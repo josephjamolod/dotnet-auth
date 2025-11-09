@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using JwtAuthApi.Dtos.Foods;
 using JwtAuthApi.Helpers.HelperObjects;
 using JwtAuthApi.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -29,6 +30,20 @@ namespace JwtAuthApi.Controllers
             catch (Exception)
             {
                 return StatusCode(500, new { message = "Error retrieving food items" });
+            }
+        }
+
+        [HttpGet("featured")]
+        public async Task<ActionResult<List<FoodResponseDto>>> GetFeaturedItems()
+        {
+            try
+            {
+                var result = await _foodItemRepo.GetFeaturedItemsAsync();
+                return Ok(result);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "Error retrieving featured food items" });
             }
         }
     }

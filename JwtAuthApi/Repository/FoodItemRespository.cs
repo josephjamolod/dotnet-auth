@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using JwtAuthApi.Data;
+using JwtAuthApi.Dtos.Foods;
 using JwtAuthApi.Helpers.HelperObjects;
 using JwtAuthApi.Helpers.QueryBuilders;
 using JwtAuthApi.Interfaces;
@@ -53,6 +54,21 @@ namespace JwtAuthApi.Repository
                 pageSize = queryObject.PageSize,
                 items = foodItems
             };
+        }
+
+        public async Task<List<FoodResponseDto>> GetFeaturedItemsAsync()
+        {
+            var limit = 6;
+            var items = await _context.FoodItems
+                    .Include(f => f.Seller)
+                    .Include(f => f.ImageUrls)
+                    .Where(f => f.IsAvailable)
+                    .OrderByDescending(f => f.Rating)
+                    .ThenByDescending(f => f.TotalSold)
+                    .Take(limit)
+                    .ToListAsync();
+            var foodItems = items.Select(f => f.FoodItemToFoodResponseDto()).ToList();
+            return foodItems;
         }
 
     }
