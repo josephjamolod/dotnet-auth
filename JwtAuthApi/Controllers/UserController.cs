@@ -16,6 +16,7 @@ namespace JwtAuthApi.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserRepository _userRepo;
+        private string GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
         public UserController(IUserRepository userRepo)
         {
             _userRepo = userRepo;
@@ -25,8 +26,7 @@ namespace JwtAuthApi.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var result = await _userRepo.GetUserProfileAsync(userId!);
+                var result = await _userRepo.GetUserProfileAsync(GetUserId());
 
                 if (!result.IsSuccess)
                     return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
@@ -46,8 +46,7 @@ namespace JwtAuthApi.Controllers
                 return BadRequest(ModelState);
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var result = await _userRepo.UpdateProfileAsync(userId!, model);
+                var result = await _userRepo.UpdateProfileAsync(GetUserId(), model);
                 if (!result.IsSuccess)
                     return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
 
@@ -71,8 +70,7 @@ namespace JwtAuthApi.Controllers
                 });
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var result = await _userRepo.DeleteAccountAsync(userId!, model);
+                var result = await _userRepo.DeleteAccountAsync(GetUserId(), model);
                 if (!result.IsSuccess)
                     return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
 

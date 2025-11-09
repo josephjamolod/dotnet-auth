@@ -18,6 +18,7 @@ namespace JwtAuthApi.Controllers
     {
         private readonly ISellerRepository _sellerRepo;
         private readonly ILogger<SellerController> _logger;
+        private string GetSellerId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
         public SellerController(ISellerRepository sellerRepo, ILogger<SellerController> logger)
         {
             _sellerRepo = sellerRepo;
@@ -50,8 +51,7 @@ namespace JwtAuthApi.Controllers
                 return BadRequest(ModelState);
             try
             {
-                var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var result = await _sellerRepo.UpdateSellerAsync(model, sellerId!);
+                var result = await _sellerRepo.UpdateSellerAsync(model, GetSellerId());
                 if (!result.IsSuccess)
                     return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
                 return Ok(result.Value);
@@ -67,9 +67,7 @@ namespace JwtAuthApi.Controllers
         {
             try
             {
-                var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                var result = await _sellerRepo.ToggleStatusAsync(sellerId!);
+                var result = await _sellerRepo.ToggleStatusAsync(GetSellerId());
                 if (!result.IsSuccess)
                     return NotFound(new { message = result.Error });
 
@@ -90,8 +88,7 @@ namespace JwtAuthApi.Controllers
                 return BadRequest(new { message = "No file uploaded" });
             try
             {
-                var sellerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var result = await _sellerRepo.UploadLogoAsync(logo, sellerId!);
+                var result = await _sellerRepo.UploadLogoAsync(logo, GetSellerId());
                 if (!result.IsSuccess)
                     return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
 
@@ -99,8 +96,7 @@ namespace JwtAuthApi.Controllers
             }
             catch (Exception)
             {
-
-                throw;
+                return StatusCode(500, new { message = "Error uploading logo" });
             }
         }
     }
