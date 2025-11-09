@@ -43,6 +43,14 @@ namespace JwtAuthApi.Mappers
                     })
                     .OrderByDescending(img => img.IsMain)
                     .ToList(),
+                Reviews = f.Reviews.OrderByDescending(r => r.CreatedAt).Take(10).Select(r => new ReviewSummaryDto()
+                {
+                    Id = r.Id,
+                    Rating = r.Rating,
+                    Comment = r.Comment,
+                    CustomerName = $"{r.Customer.FirstName} {r.Customer.LastName}",
+                    CreatedAt = r.CreatedAt
+                }).ToList(),
                 IsAvailable = f.IsAvailable,
                 PreparationTime = f.PreparationTime,
                 Rating = f.Rating,

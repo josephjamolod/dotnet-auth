@@ -20,6 +20,7 @@ namespace JwtAuthApi.Dtos.Foods
         public string Category { get; set; } = string.Empty; // e.g., "Main Course", "Dessert", "Beverage"
 
         public List<FoodImageResponseDto> ImageUrls { get; set; } = new();
+        public List<ReviewSummaryDto> Reviews { get; set; } = new();
         public bool IsAvailable { get; set; } = true;
         public int PreparationTime { get; set; } = 30; // In minutes
         public decimal Rating { get; set; } = 0;

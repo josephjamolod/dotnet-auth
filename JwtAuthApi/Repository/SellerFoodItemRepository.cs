@@ -74,7 +74,11 @@ namespace JwtAuthApi.Repository
             if (seller == null)
                 return OperationResult<FoodResponseDto, string>.Failure("Seller Not Found");
 
-            var foodItem = await _context.FoodItems.Include(f => f.ImageUrls).FirstOrDefaultAsync(f => f.Id == foodId && f.SellerId == seller.Id);
+            var foodItem = await _context.FoodItems
+                .Include(f => f.ImageUrls)
+                .Include(f => f.Reviews)
+                    .ThenInclude(r => r.Customer)
+                .FirstOrDefaultAsync(f => f.Id == foodId && f.SellerId == seller.Id);
 
             if (foodItem == null)
                 return OperationResult<FoodResponseDto, string>.Failure("Food item not found"); ;
