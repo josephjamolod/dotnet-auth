@@ -10,6 +10,7 @@ namespace JwtAuthApi.Interfaces
     public interface IFoodItemRespository
     {
         Task<object> GetAllFoodItemsAsync(AllFoodsQuery queryObject);
+        Task<OperationResult<FoodResponseDto, string>> GetFoodItemByIdAsync(int foodId);
         Task<List<FoodResponseDto>> GetFeaturedItemsAsync();
     }
 }

@@ -56,6 +56,21 @@ namespace JwtAuthApi.Repository
             };
         }
 
+        public async Task<OperationResult<FoodResponseDto, string>> GetFoodItemByIdAsync(int foodId)
+        {
+            var foodItem = await _context.FoodItems
+                .Include(f => f.ImageUrls)
+                .Include(f => f.Reviews)
+                    .ThenInclude(r => r.Customer)
+                .FirstOrDefaultAsync(f => f.Id == foodId);
+
+            if (foodItem == null)
+                return OperationResult<FoodResponseDto, string>.Failure("Food item not found"); ;
+
+            var foodItemResponse = foodItem.FoodItemToFoodResponseDto();
+            return OperationResult<FoodResponseDto, string>.Success(foodItemResponse);
+        }
+
         public async Task<List<FoodResponseDto>> GetFeaturedItemsAsync()
         {
             var limit = 6;

@@ -33,6 +33,23 @@ namespace JwtAuthApi.Controllers
             }
         }
 
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetFoodItemById([FromRoute] int id)
+        {
+            try
+            {
+                var result = await _foodItemRepo.GetFoodItemByIdAsync(id);
+                if (!result.IsSuccess)
+                    return NotFound(new { message = result.Error });
+
+                return Ok(result.Value);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred. Please try again." });
+            }
+        }
+
         [HttpGet("featured")]
         public async Task<ActionResult<List<FoodResponseDto>>> GetFeaturedItems()
         {
