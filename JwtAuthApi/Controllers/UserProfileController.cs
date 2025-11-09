@@ -13,11 +13,11 @@ namespace JwtAuthApi.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class UserController : ControllerBase
+    public class UserProfile : ControllerBase
     {
-        private readonly IUserRepository _userRepo;
+        private readonly IUserProfileRepository _userRepo;
         private string GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
-        public UserController(IUserRepository userRepo)
+        public UserProfile(IUserProfileRepository userRepo)
         {
             _userRepo = userRepo;
         }

@@ -8,7 +8,7 @@ using JwtAuthApi.Helpers.HelperObjects;
 
 namespace JwtAuthApi.Interfaces
 {
-    public interface IUserRepository
+    public interface IUserProfileRepository
     {
         Task<OperationResult<UserProfileDto, ErrorResult>> GetUserProfileAsync(string userId);
         Task<OperationResult<object, ErrorResult>> UpdateProfileAsync(string userId, UpdateProfileDto model);

@@ -13,12 +13,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JwtAuthApi.Repository
 {
-    public class UserRepository : IUserRepository
+    public class UserProfileRepository : IUserProfileRepository
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly ApplicationDBContext _context;
 
-        public UserRepository(UserManager<AppUser> userManager, ApplicationDBContext context)
+        public UserProfileRepository(UserManager<AppUser> userManager, ApplicationDBContext context)
         {
             _userManager = userManager;
             _context = context;
