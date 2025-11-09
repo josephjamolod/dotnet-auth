@@ -20,21 +20,21 @@ namespace JwtAuthApi.Controllers
     [Authorize(Roles = "Seller")]
     public class SellerFoodItemController : ControllerBase
     {
-        private readonly ISellerFoodItemRepository _foodItemRepo;
+        private readonly ISellerFoodItemRepository _sellerFoodItemRepo;
         private readonly ILogger<SellerFoodItemController> _logger;
         private string GetSellerId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
-        public SellerFoodItemController(ISellerFoodItemRepository foodItemRepo, ILogger<SellerFoodItemController> logger)
+        public SellerFoodItemController(ISellerFoodItemRepository sellerFoodItemRepo, ILogger<SellerFoodItemController> logger)
         {
-            _foodItemRepo = foodItemRepo;
+            _sellerFoodItemRepo = sellerFoodItemRepo;
             _logger = logger;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllFoodItems([FromQuery] AllFoodsQuery queryObject)
+        public async Task<IActionResult> GetSellerAllFoodItems([FromQuery] AllFoodsQuery queryObject)
         {
             try
             {
-                var result = await _foodItemRepo.GetAllFoodItemsAsync(queryObject, GetSellerId());
+                var result = await _sellerFoodItemRepo.GetSellerAllFoodItemsAsync(queryObject, GetSellerId());
                 return Ok(result);
             }
             catch (Exception)
@@ -48,7 +48,7 @@ namespace JwtAuthApi.Controllers
         {
             try
             {
-                var result = await _foodItemRepo.GetByIdAsync(id, GetSellerId());
+                var result = await _sellerFoodItemRepo.GetByIdAsync(id, GetSellerId());
                 if (!result.IsSuccess)
                     return NotFound(new { message = result.Error });
 
@@ -67,7 +67,7 @@ namespace JwtAuthApi.Controllers
                 return BadRequest(ModelState);
             try
             {
-                var result = await _foodItemRepo.CreateAsync(model, GetSellerId());
+                var result = await _sellerFoodItemRepo.CreateAsync(model, GetSellerId());
                 if (!result.IsSuccess)
                     return NotFound(new { message = result.Error });
 
@@ -100,7 +100,7 @@ namespace JwtAuthApi.Controllers
                 return BadRequest(new { message = "Maximum 5 images allowed" });
             try
             {
-                var result = await _foodItemRepo.UploadFoodImagesAsync(id, images, setFirstAsMain, GetSellerId());
+                var result = await _sellerFoodItemRepo.UploadFoodImagesAsync(id, images, setFirstAsMain, GetSellerId());
                 if (!result.IsSuccess)
                     return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
                 return Ok(result.Value);
@@ -117,7 +117,7 @@ namespace JwtAuthApi.Controllers
         {
             try
             {
-                var result = await _foodItemRepo.DeleteFoodImageAsync(imageId, GetSellerId());
+                var result = await _sellerFoodItemRepo.DeleteFoodImageAsync(imageId, GetSellerId());
 
                 if (!result.IsSuccess)
                     return NotFound(new { message = result.Error });
@@ -136,7 +136,7 @@ namespace JwtAuthApi.Controllers
         {
             try
             {
-                var result = await _foodItemRepo.SetMainFoodImageAsync(imageId, GetSellerId());
+                var result = await _sellerFoodItemRepo.SetMainFoodImageAsync(imageId, GetSellerId());
                 if (!result.IsSuccess)
                     return NotFound(new { message = result.Error });
 
@@ -154,7 +154,7 @@ namespace JwtAuthApi.Controllers
         {
             try
             {
-                var result = await _foodItemRepo.SetAvailabilityAsync(id, isAvailable, GetSellerId());
+                var result = await _sellerFoodItemRepo.SetAvailabilityAsync(id, isAvailable, GetSellerId());
 
                 if (!result.IsSuccess)
                     return NotFound(new { message = result.Error });
@@ -176,7 +176,7 @@ namespace JwtAuthApi.Controllers
 
             try
             {
-                var result = await _foodItemRepo.UpdateFoodItemAsync(id, GetSellerId(), model);
+                var result = await _sellerFoodItemRepo.UpdateFoodItemAsync(id, GetSellerId(), model);
                 if (!result.IsSuccess)
                     return NotFound(new { message = result.Error });
 
@@ -194,7 +194,7 @@ namespace JwtAuthApi.Controllers
         {
             try
             {
-                var result = await _foodItemRepo.DeleteFoodItemAsync(id, GetSellerId());
+                var result = await _sellerFoodItemRepo.DeleteFoodItemAsync(id, GetSellerId());
                 if (!result.IsSuccess)
                     return NotFound(new { message = result.Error });
 
