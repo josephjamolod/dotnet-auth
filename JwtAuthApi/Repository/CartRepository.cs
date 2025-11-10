@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using JwtAuthApi.Data;
 using JwtAuthApi.Dtos.Cart;
@@ -187,6 +188,41 @@ namespace JwtAuthApi.Repository
                 {
                     ErrCode = StatusCodes.Status500InternalServerError,
                     ErrDescription = "Something went wrong adding item quantity"
+                });
+            }
+        }
+
+        public async Task<OperationResult<object, ErrorResult>> RemoveFromCartAsync(int cartItemId, string userId)
+        {
+            try
+            {
+                var cartItem = await _context.CartItems
+                        .Include(ci => ci.Cart)
+                        .FirstOrDefaultAsync(ci => ci.Id == cartItemId && ci.Cart.CustomerId == userId);
+
+                if (cartItem == null)
+                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status404NotFound,
+                        ErrDescription = "Cart item not found"
+                    });
+
+                var cart = cartItem.Cart;
+                _context.CartItems.Remove(cartItem);
+
+                cart.LastActivityAt = DateTime.UtcNow;
+                cart.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                return OperationResult<object, ErrorResult>.Success(new { message = "Item removed from cart" });
+            }
+            catch (Exception)
+            {
+                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status500InternalServerError,
+                    ErrDescription = "Something went wrong removing item"
                 });
             }
         }

@@ -12,5 +12,6 @@ namespace JwtAuthApi.Interfaces
         Task<OperationResult<CartItemDto, ErrorResult>> AddToCartAsync(AddToCartRequest model, string userId);
         Task<OperationResult<CartResponseDto, ErrorResult>> GetCartAsync(string userId);
         Task<OperationResult<object, ErrorResult>> UpdateCartItemAsync(int cartItemId, string userId, UpdateCartItemRequest request);
+        Task<OperationResult<object, ErrorResult>> RemoveFromCartAsync(int cartItemId, string userId);
     }
 }
