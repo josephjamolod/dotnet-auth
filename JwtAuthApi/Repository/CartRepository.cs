@@ -226,5 +226,38 @@ namespace JwtAuthApi.Repository
                 });
             }
         }
+
+        public async Task<OperationResult<object, ErrorResult>> ClearCartAsync(string userId)
+        {
+            try
+            {
+                var cart = await _context.Carts
+                  .Include(c => c.CartItems)
+                  .FirstOrDefaultAsync(c => c.CustomerId == userId);
+
+                if (cart == null)
+                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status404NotFound,
+                        ErrDescription = "Cart not found"
+                    });
+
+                _context.CartItems.RemoveRange(cart.CartItems);
+                cart.LastActivityAt = DateTime.UtcNow;
+                cart.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                return OperationResult<object, ErrorResult>.Success(new { message = "Cart cleared successfully" });
+            }
+            catch (Exception)
+            {
+                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status500InternalServerError,
+                    ErrDescription = "Something went wrong removing cart items"
+                });
+            }
+        }
     }
 }

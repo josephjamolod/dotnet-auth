@@ -67,5 +67,15 @@ namespace JwtAuthApi.Controllers
 
             return Ok(result.Value);
         }
+
+        [HttpDelete]
+        public async Task<IActionResult> ClearCart()
+        {
+            var result = await _cartRepo.ClearCartAsync(GetUserId());
+            if (!result.IsSuccess)
+                return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
+
+            return Ok(result.Value);
+        }
     }
 }
