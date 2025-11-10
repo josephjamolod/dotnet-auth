@@ -47,5 +47,15 @@ namespace JwtAuthApi.Controllers
 
             return Ok(result.Value);
         }
+
+        [HttpPut("items/{id}")]
+        public async Task<IActionResult> UpdateCartItem(int id, UpdateCartItemRequest request)
+        {
+            var result = await _cartRepo.UpdateCartItemAsync(id, GetUserId(), request);
+            if (!result.IsSuccess)
+                return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
+
+            return Ok(result.Value);
+        }
     }
 }

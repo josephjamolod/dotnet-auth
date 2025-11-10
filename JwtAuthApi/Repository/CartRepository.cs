@@ -143,5 +143,52 @@ namespace JwtAuthApi.Repository
                 });
             }
         }
+
+        public async Task<OperationResult<object, ErrorResult>> UpdateCartItemAsync(int cartItemId, string userId, UpdateCartItemRequest request)
+        {
+            try
+            {
+                var cartItem = await _context.CartItems
+                  .Include(ci => ci.Cart)
+                  .Include(ci => ci.FoodItem)
+                  .FirstOrDefaultAsync(ci => ci.Id == cartItemId && ci.Cart.CustomerId == userId);
+
+                if (cartItem == null)
+                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status404NotFound,
+                        ErrDescription = "Cart item not found"
+                    });
+                // return NotFound(new { message = "Cart item not found" });
+
+                if (request.Quantity <= 0)
+                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status400BadRequest,
+                        ErrDescription = "Quantity must be greater than 0"
+                    });
+                // return BadRequest(new { message = "Quantity must be greater than 0" });
+
+                cartItem.Quantity = request.Quantity;
+                if (request.SpecialInstructions != null)
+                {
+                    cartItem.SpecialInstructions = request.SpecialInstructions;
+                }
+                cartItem.UpdatedAt = DateTime.UtcNow;
+                cartItem.Cart.LastActivityAt = DateTime.UtcNow;
+                cartItem.Cart.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return OperationResult<object, ErrorResult>.Success(new { message = "Cart item updated successfully" });
+            }
+            catch (Exception)
+            {
+                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status500InternalServerError,
+                    ErrDescription = "Something went wrong adding item quantity"
+                });
+            }
+        }
     }
 }
