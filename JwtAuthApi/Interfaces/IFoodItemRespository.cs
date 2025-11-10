@@ -12,5 +12,7 @@ namespace JwtAuthApi.Interfaces
         Task<object> GetAllFoodItemsAsync(AllFoodsQuery queryObject);
         Task<OperationResult<FoodResponseDto, string>> GetFoodItemByIdAsync(int foodId);
         Task<List<FoodResponseDto>> GetFeaturedItemsAsync();
+        Task<object> GetSellerMenuAsync(AllFoodsQuery queryObject, string sellerId);
+
     }
 }

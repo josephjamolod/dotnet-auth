@@ -63,5 +63,20 @@ namespace JwtAuthApi.Controllers
                 return StatusCode(500, new { message = "Error retrieving featured food items" });
             }
         }
+
+        [HttpGet("seller/{sellerId}")]
+        public async Task<IActionResult> GetSellerMenu([FromRoute] string sellerId, [FromQuery] AllFoodsQuery queryObject)
+        {
+            try
+            {
+                var result = await _foodItemRepo.GetSellerMenuAsync(queryObject, sellerId);
+                return Ok(result);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "Error retrieving food items" });
+            }
+        }
+
     }
 }
