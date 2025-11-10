@@ -37,5 +37,15 @@ namespace JwtAuthApi.Controllers
                 return StatusCode(500, new { message = "Error adding item to cart" });
             }
         }
+
+        [HttpGet]
+        public async Task<ActionResult<CartResponseDto>> GetCart()
+        {
+            var result = await _cartRepo.GetCartAsync(GetUserId());
+            if (!result.IsSuccess)
+                return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
+
+            return Ok(result.Value);
+        }
     }
 }

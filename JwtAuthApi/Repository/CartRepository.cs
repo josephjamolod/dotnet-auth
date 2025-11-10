@@ -6,6 +6,7 @@ using JwtAuthApi.Data;
 using JwtAuthApi.Dtos.Cart;
 using JwtAuthApi.Helpers.HelperObjects;
 using JwtAuthApi.Interfaces;
+using JwtAuthApi.Mappers;
 using JwtAuthApi.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,7 +34,6 @@ namespace JwtAuthApi.Repository
                     ErrCode = StatusCodes.Status404NotFound,
                     ErrDescription = "Food item not found"
                 });
-            // return NotFound(new { message = "Food item not found" });
 
             if (!foodItem.IsAvailable)
                 return OperationResult<CartItemDto, ErrorResult>.Failure(new ErrorResult()
@@ -41,7 +41,6 @@ namespace JwtAuthApi.Repository
                     ErrCode = StatusCodes.Status400BadRequest,
                     ErrDescription = "This item is currently unavailable"
                 });
-            // return BadRequest(new { message = "This item is currently unavailable" });
 
             // Get or create cart
             var cart = await _context.Carts
@@ -102,6 +101,47 @@ namespace JwtAuthApi.Repository
                 MainImageUrl = foodItem.ImageUrls.FirstOrDefault(img => img.IsMainImage)?.ImageUrl,
                 SellerName = foodItem.Seller.BusinessName
             });
+        }
+
+        public async Task<OperationResult<CartResponseDto, ErrorResult>> GetCartAsync(string userId)
+        {
+            try
+            {
+                var cart = await _context.Carts
+                       .Include(c => c.CartItems)
+                           .ThenInclude(ci => ci.FoodItem)
+                               .ThenInclude(fi => fi.ImageUrls)
+                       .Include(c => c.CartItems)
+                           .ThenInclude(ci => ci.FoodItem)
+                               .ThenInclude(fi => fi.Seller)
+                       .FirstOrDefaultAsync(c => c.CustomerId == userId);
+
+                if (cart == null)
+                {
+                    // Create empty cart if doesn't exist
+                    cart = new Cart { CustomerId = userId };
+                    _context.Carts.Add(cart);
+                    await _context.SaveChangesAsync();
+                }
+
+                // Group cart items by seller
+                var sellerGroups = cart.CartItems
+                    .GroupBy(ci => ci.FoodItem.SellerId)
+                    .Select(g => g.GroupToSellerCartDto()).ToList();
+
+                var cartResponse = cart.CartToCartResponseDto();
+                cartResponse.SellerCarts = sellerGroups;
+                cartResponse.GrandTotal = sellerGroups.Sum(s => s.SubTotal);
+                return OperationResult<CartResponseDto, ErrorResult>.Success(cartResponse);
+            }
+            catch (Exception)
+            {
+                return OperationResult<CartResponseDto, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status500InternalServerError,
+                    ErrDescription = "Something went wrong, please try again"
+                });
+            }
         }
     }
 }

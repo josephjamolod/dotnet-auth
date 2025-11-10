@@ -10,5 +10,6 @@ namespace JwtAuthApi.Interfaces
     public interface ICartRepository
     {
         Task<OperationResult<CartItemDto, ErrorResult>> AddToCartAsync(AddToCartRequest model, string userId);
+        Task<OperationResult<CartResponseDto, ErrorResult>> GetCartAsync(string userId);
     }
 }
