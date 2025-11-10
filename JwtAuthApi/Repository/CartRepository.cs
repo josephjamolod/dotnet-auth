@@ -54,20 +54,6 @@ namespace JwtAuthApi.Repository
                 _context.Carts.Add(cart);
             }
 
-            // Check if cart has items from different seller
-            if (cart.SellerId != null && cart.SellerId != foodItem.SellerId)
-                return OperationResult<CartItemDto, ErrorResult>.Failure(new ErrorResult()
-                {
-                    ErrCode = StatusCodes.Status400BadRequest,
-                    ErrDescription = "This item is currently unavailable"
-                });
-            // return BadRequest(new { message = "You can only order from one seller at a time. Please clear your cart or checkout first." });
-
-
-            // Set seller if first item
-            if (cart.SellerId == null)
-                cart.SellerId = foodItem.SellerId;
-
             // Check if item already in cart
             var existingCartItem = cart.CartItems.FirstOrDefault(ci => ci.FoodItemId == model.FoodItemId);
 

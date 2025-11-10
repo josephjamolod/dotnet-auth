@@ -22,7 +22,8 @@ namespace JwtAuthApi.Models
         public DateTime AddedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
-        // Snapshot price at time of adding to cart (optional but useful)
+        // Snapshot price at time of adding to cart
+        [Required]
         [Column(TypeName = "decimal(10,2)")]
         public decimal PriceSnapshot { get; set; }
 

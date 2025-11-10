@@ -18,10 +18,6 @@ namespace JwtAuthApi.Models
         // Useful for cart expiration/cleanup
         public DateTime? LastActivityAt { get; set; }
 
-        // Optional Foreign Key: Store selected seller to ensure cart items are from same seller
-        public string? SellerId { get; set; }
-        public AppUser? Seller { get; set; }
-
         // Foreign Key
         [Required]
         public string CustomerId { get; set; } = string.Empty;

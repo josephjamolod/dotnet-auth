@@ -44,15 +44,15 @@ namespace JwtAuthApi.Data
             // Configure Order
             builder.Entity<Order>()
                 .HasOne(o => o.Customer)
-                .WithMany()
+                      .WithMany(u => u.Orders)
                 .HasForeignKey(o => o.CustomerId)
-                .OnDelete(DeleteBehavior.Restrict);
+                   .OnDelete(DeleteBehavior.NoAction);
 
             builder.Entity<Order>()
                 .HasOne(o => o.Seller)
-                .WithMany(u => u.Orders)
+                .WithMany()
                 .HasForeignKey(o => o.SellerId)
-                .OnDelete(DeleteBehavior.Restrict);
+                 .OnDelete(DeleteBehavior.NoAction);
 
             // Configure OrderItem
             builder.Entity<OrderItem>()
@@ -65,7 +65,7 @@ namespace JwtAuthApi.Data
                 .HasOne(oi => oi.FoodItem)
                 .WithMany(f => f.OrderItems)
                 .HasForeignKey(oi => oi.FoodItemId)
-                .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.NoAction);
 
             // Configure Review
             builder.Entity<Review>()
@@ -117,14 +117,7 @@ namespace JwtAuthApi.Data
                 .HasOne(c => c.Customer)
                 .WithOne(u => u.Cart)
                 .HasForeignKey<Cart>(c => c.CustomerId)
-                .OnDelete(DeleteBehavior.NoAction);  // ✅ Changed from Cascade
-
-            // Cart to Seller (Many-to-One - Optional)
-            builder.Entity<Cart>()
-                .HasOne(c => c.Seller)
-                .WithMany()
-                .HasForeignKey(c => c.SellerId)
-                .OnDelete(DeleteBehavior.SetNull);  // ✅ Keep SetNull (it's optional anyway)
+                .OnDelete(DeleteBehavior.NoAction);
 
             // CartItem to Cart (Many-to-One)
             builder.Entity<CartItem>()
