@@ -304,5 +304,99 @@ namespace JwtAuthApi.Repository
                 });
             }
         }
+
+        public async Task<OperationResult<CartValidationResult, ErrorResult>> ValidateItemsInSellerCartAsync(string sellerId, string userId)
+        {
+            try
+            {
+                var cart = await _context.Carts
+                .Include(c => c.CartItems)
+                    .ThenInclude(ci => ci.FoodItem)
+                .FirstOrDefaultAsync(c => c.CustomerId == userId);
+
+                if (cart == null || cart.CartItems.Count == 0)
+                    return OperationResult<CartValidationResult, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status400BadRequest,
+                        ErrDescription = "Cart is empty"
+                    });
+
+                var sellerItems = cart.CartItems
+                    .Where(ci => ci.FoodItem.SellerId == sellerId)
+                    .ToList();
+
+                if (sellerItems.Count == 0)
+                    return OperationResult<CartValidationResult, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status400BadRequest,
+                        ErrDescription = "No items from this seller in cart"
+                    });
+
+                var validationResult = new CartValidationResult
+                {
+                    IsValid = true,
+                    CanProceed = true,
+                    RequiresConfirmation = false,
+                    Issues = new List<ValidationIssue>()
+                };
+
+                foreach (var item in sellerItems)
+                {
+                    // Check availability - BLOCKS checkout
+                    if (!item.FoodItem.IsAvailable)
+                        CheckAvailability(validationResult, item);
+
+                    // Check price changes - ALLOWS checkout with confirmation
+                    if (item.PriceSnapshot != item.FoodItem.Price)
+                        CheckPriceChanges(validationResult, item);
+                }
+
+                return OperationResult<CartValidationResult, ErrorResult>.Success(validationResult);
+            }
+            catch (Exception)
+            {
+                return OperationResult<CartValidationResult, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status500InternalServerError,
+                    ErrDescription = "Something went wrong removing cart items"
+                });
+            }
+        }
+
+        private static void CheckAvailability(CartValidationResult validationResult, CartItem item)
+        {
+            validationResult.IsValid = false;
+            validationResult.CanProceed = false;
+            validationResult.HasUnavailableItems = true;
+            validationResult.Issues.Add(new ValidationIssue
+            {
+                Type = "unavailable",
+                ItemId = item.Id,
+                ItemName = item.FoodItem.Name,
+                Message = $"{item.FoodItem.Name} is no longer available"
+            });
+        }
+
+        private static void CheckPriceChanges(CartValidationResult validationResult, CartItem item)
+        {
+            validationResult.HasPriceChanges = true;
+            validationResult.RequiresConfirmation = true;
+
+            var priceDiff = item.FoodItem.Price - item.PriceSnapshot;
+            var isIncrease = priceDiff > 0;
+
+            validationResult.Issues.Add(new ValidationIssue
+            {
+                Type = isIncrease ? "priceIncrease" : "priceDecrease",
+                ItemId = item.Id,
+                ItemName = item.FoodItem.Name,
+                OldPrice = item.PriceSnapshot,
+                NewPrice = item.FoodItem.Price,
+                PriceDifference = Math.Abs(priceDiff),
+                Message = isIncrease
+                    ? $"{item.FoodItem.Name} price increased from ₱{item.PriceSnapshot} to ₱{item.FoodItem.Price}"
+                    : $"{item.FoodItem.Name} price decreased from ₱{item.PriceSnapshot} to ₱{item.FoodItem.Price} (you save ₱{Math.Abs(priceDiff)}!)"
+            });
+        }
     }
 }

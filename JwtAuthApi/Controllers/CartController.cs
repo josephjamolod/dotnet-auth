@@ -88,5 +88,15 @@ namespace JwtAuthApi.Controllers
 
             return Ok(result.Value);
         }
+
+        [HttpPost("validate/seller/{sellerId}")]
+        public async Task<ActionResult<CartValidationResult>> ValidateItemsInSellerCart(string sellerId)
+        {
+            var result = await _cartRepo.ValidateItemsInSellerCartAsync(sellerId, GetUserId());
+            if (!result.IsSuccess)
+                return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
+
+            return Ok(result.Value);
+        }
     }
 }
