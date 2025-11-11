@@ -77,5 +77,16 @@ namespace JwtAuthApi.Controllers
 
             return Ok(result.Value);
         }
+
+        // Allows CUSTOMERS to remove all items from a specific seller
+        [HttpDelete("seller/{sellerId}")]
+        public async Task<IActionResult> ClearSellerCart(string sellerId)
+        {
+            var result = await _cartRepo.ClearSellerCartAsync(sellerId, GetUserId());
+            if (!result.IsSuccess)
+                return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
+
+            return Ok(result.Value);
+        }
     }
 }

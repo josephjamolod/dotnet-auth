@@ -259,5 +259,50 @@ namespace JwtAuthApi.Repository
                 });
             }
         }
+
+        public async Task<OperationResult<object, ErrorResult>> ClearSellerCartAsync(string sellerId, string userId)
+        {
+            try
+            {
+                var cart = await _context.Carts
+                       .Include(c => c.CartItems)
+                           .ThenInclude(ci => ci.FoodItem)
+                       .FirstOrDefaultAsync(c => c.CustomerId == userId);
+
+                if (cart == null)
+                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status404NotFound,
+                        ErrDescription = "Cart not found"
+                    });
+
+                // Get items from specific seller
+                var sellerItems = cart.CartItems
+                    .Where(ci => ci.FoodItem.SellerId == sellerId)
+                    .ToList();
+
+                if (!sellerItems.Any())
+                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status404NotFound,
+                        ErrDescription = "No items from this seller in cart"
+                    });
+
+                _context.CartItems.RemoveRange(sellerItems);
+                cart.LastActivityAt = DateTime.UtcNow;
+                cart.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return OperationResult<object, ErrorResult>.Success(new { message = $"Removed {sellerItems.Count} items from cart" });
+            }
+            catch (Exception)
+            {
+                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status500InternalServerError,
+                    ErrDescription = "Something went wrong removing cart items"
+                });
+            }
+        }
     }
 }
