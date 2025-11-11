@@ -98,5 +98,15 @@ namespace JwtAuthApi.Controllers
 
             return Ok(result.Value);
         }
+
+        [HttpPost("validate")]
+        public async Task<ActionResult<CartValidationResult>> ValidateCart()
+        {
+            var result = await _cartRepo.ValidateAllCartItemsAsync(GetUserId());
+            if (!result.IsSuccess)
+                return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
+
+            return Ok(result.Value);
+        }
     }
 }

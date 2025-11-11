@@ -363,6 +363,53 @@ namespace JwtAuthApi.Repository
             }
         }
 
+        public async Task<OperationResult<CartValidationResult, ErrorResult>> ValidateAllCartItemsAsync(string userId)
+        {
+            try
+            {
+                var cart = await _context.Carts
+                         .Include(c => c.CartItems)
+                             .ThenInclude(ci => ci.FoodItem)
+                         .FirstOrDefaultAsync(c => c.CustomerId == userId);
+
+                if (cart == null || cart.CartItems.Count == 0)
+                    return OperationResult<CartValidationResult, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status400BadRequest,
+                        ErrDescription = "Cart is empty"
+                    });
+
+                var validationResult = new CartValidationResult
+                {
+                    IsValid = true,
+                    CanProceed = true,
+                    RequiresConfirmation = false,
+                    Issues = new List<ValidationIssue>()
+                };
+
+                foreach (var item in cart.CartItems)
+                {
+                    // Check availability
+                    if (!item.FoodItem.IsAvailable)
+                        CheckAvailability(validationResult, item);
+
+                    // Check price changes
+                    if (item.PriceSnapshot != item.FoodItem.Price)
+                        CheckPriceChanges(validationResult, item);
+                }
+
+                return OperationResult<CartValidationResult, ErrorResult>.Success(validationResult);
+            }
+            catch (Exception)
+            {
+                return OperationResult<CartValidationResult, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status500InternalServerError,
+                    ErrDescription = "Something went wrong removing cart items"
+                });
+            }
+        }
+
         private static void CheckAvailability(CartValidationResult validationResult, CartItem item)
         {
             validationResult.IsValid = false;

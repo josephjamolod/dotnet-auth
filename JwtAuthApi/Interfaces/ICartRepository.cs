@@ -16,5 +16,6 @@ namespace JwtAuthApi.Interfaces
         Task<OperationResult<object, ErrorResult>> ClearCartAsync(string userId);
         Task<OperationResult<object, ErrorResult>> ClearSellerCartAsync(string sellerId, string userId);
         Task<OperationResult<CartValidationResult, ErrorResult>> ValidateItemsInSellerCartAsync(string sellerId, string userId);
+        Task<OperationResult<CartValidationResult, ErrorResult>> ValidateAllCartItemsAsync(string userId);
     }
 }
