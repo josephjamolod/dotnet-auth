@@ -59,9 +59,9 @@ namespace JwtAuthApi.Controllers
         }
 
         [HttpDelete("items/{id}")]
-        public async Task<IActionResult> RemoveFromCart(int id)
+        public async Task<IActionResult> RemoveItemFromCart(int id)
         {
-            var result = await _cartRepo.RemoveFromCartAsync(id, GetUserId());
+            var result = await _cartRepo.RemoveItemFromCartAsync(id, GetUserId());
             if (!result.IsSuccess)
                 return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
 

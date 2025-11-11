@@ -192,7 +192,7 @@ namespace JwtAuthApi.Repository
             }
         }
 
-        public async Task<OperationResult<object, ErrorResult>> RemoveFromCartAsync(int cartItemId, string userId)
+        public async Task<OperationResult<object, ErrorResult>> RemoveItemFromCartAsync(int cartItemId, string userId)
         {
             try
             {

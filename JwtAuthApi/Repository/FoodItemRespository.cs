@@ -122,8 +122,5 @@ namespace JwtAuthApi.Repository
                 items = foodItems
             };
         }
-
-
-
     }
 }
