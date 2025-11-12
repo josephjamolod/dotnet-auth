@@ -16,6 +16,7 @@ namespace JwtAuthApi.Repository
     public class CartRepository : ICartRepository
     {
         private readonly ApplicationDBContext _context;
+
         public CartRepository(ApplicationDBContext context)
         {
             _context = context;
@@ -235,14 +236,11 @@ namespace JwtAuthApi.Repository
                   .Include(c => c.CartItems)
                   .FirstOrDefaultAsync(c => c.CustomerId == userId);
 
-                if (cart == null)
-                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
-                    {
-                        ErrCode = StatusCodes.Status404NotFound,
-                        ErrDescription = "Cart not found"
-                    });
+                var cartValidation = IsCartEmpty<object>(cart);
+                if (cartValidation != null)
+                    return cartValidation;
 
-                _context.CartItems.RemoveRange(cart.CartItems);
+                _context.CartItems.RemoveRange(cart!.CartItems);
                 cart.LastActivityAt = DateTime.UtcNow;
                 cart.UpdatedAt = DateTime.UtcNow;
 
@@ -269,19 +267,17 @@ namespace JwtAuthApi.Repository
                            .ThenInclude(ci => ci.FoodItem)
                        .FirstOrDefaultAsync(c => c.CustomerId == userId);
 
-                if (cart == null)
-                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
-                    {
-                        ErrCode = StatusCodes.Status404NotFound,
-                        ErrDescription = "Cart not found"
-                    });
+
+                var cartValidation = IsCartEmpty<object>(cart);
+                if (cartValidation != null)
+                    return cartValidation;
 
                 // Get items from specific seller
-                var sellerItems = cart.CartItems
+                var sellerItems = cart!.CartItems
                     .Where(ci => ci.FoodItem.SellerId == sellerId)
                     .ToList();
 
-                if (!sellerItems.Any())
+                if (sellerItems.Count == 0)
                     return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
                     {
                         ErrCode = StatusCodes.Status404NotFound,
@@ -314,14 +310,11 @@ namespace JwtAuthApi.Repository
                     .ThenInclude(ci => ci.FoodItem)
                 .FirstOrDefaultAsync(c => c.CustomerId == userId);
 
-                if (cart == null || cart.CartItems.Count == 0)
-                    return OperationResult<CartValidationResult, ErrorResult>.Failure(new ErrorResult()
-                    {
-                        ErrCode = StatusCodes.Status400BadRequest,
-                        ErrDescription = "Cart is empty"
-                    });
+                var cartValidation = IsCartEmpty<CartValidationResult>(cart);
+                if (cartValidation != null)
+                    return cartValidation;
 
-                var sellerItems = cart.CartItems
+                var sellerItems = cart!.CartItems
                     .Where(ci => ci.FoodItem.SellerId == sellerId)
                     .ToList();
 
@@ -332,13 +325,7 @@ namespace JwtAuthApi.Repository
                         ErrDescription = "No items from this seller in cart"
                     });
 
-                var validationResult = new CartValidationResult
-                {
-                    IsValid = true,
-                    CanProceed = true,
-                    RequiresConfirmation = false,
-                    Issues = new List<ValidationIssue>()
-                };
+                var validationResult = new CartValidationResult();
 
                 foreach (var item in sellerItems)
                 {
@@ -372,22 +359,12 @@ namespace JwtAuthApi.Repository
                              .ThenInclude(ci => ci.FoodItem)
                          .FirstOrDefaultAsync(c => c.CustomerId == userId);
 
-                if (cart == null || cart.CartItems.Count == 0)
-                    return OperationResult<CartValidationResult, ErrorResult>.Failure(new ErrorResult()
-                    {
-                        ErrCode = StatusCodes.Status400BadRequest,
-                        ErrDescription = "Cart is empty"
-                    });
+                var cartValidation = IsCartEmpty<CartValidationResult>(cart);
+                if (cartValidation != null)
+                    return cartValidation;
+                var validationResult = new CartValidationResult();
 
-                var validationResult = new CartValidationResult
-                {
-                    IsValid = true,
-                    CanProceed = true,
-                    RequiresConfirmation = false,
-                    Issues = new List<ValidationIssue>()
-                };
-
-                foreach (var item in cart.CartItems)
+                foreach (var item in cart!.CartItems)
                 {
                     // Check availability
                     if (!item.FoodItem.IsAvailable)
@@ -445,5 +422,20 @@ namespace JwtAuthApi.Repository
                     : $"{item.FoodItem.Name} price decreased from ₱{item.PriceSnapshot} to ₱{item.FoodItem.Price} (you save ₱{Math.Abs(priceDiff)}!)"
             });
         }
+
+        private static OperationResult<T, ErrorResult>? IsCartEmpty<T>(Cart? cart)
+        {
+            if (cart == null || cart.CartItems == null || cart.CartItems.Count == 0)
+            {
+                return OperationResult<T, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status404NotFound,
+                    ErrDescription = "Cart not found or empty"
+                });
+            }
+
+            return null; // means no problem
+        }
+
     }
 }
