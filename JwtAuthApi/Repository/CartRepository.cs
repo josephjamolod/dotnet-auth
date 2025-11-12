@@ -87,22 +87,10 @@ namespace JwtAuthApi.Repository
             await _context.SaveChangesAsync();
 
             var resultItem = existingCartItem ?? cart.CartItems.Last();
+            var addCartResponse = new CartItemDto();
+            addCartResponse.AddToCartResponse(resultItem, foodItem);
 
-            return OperationResult<CartItemDto, ErrorResult>.Success(new CartItemDto
-            {
-                Id = resultItem.Id,
-                FoodItemId = resultItem.FoodItemId,
-                FoodItemName = foodItem.Name,
-                FoodItemPrice = foodItem.Price,
-                PriceSnapshot = resultItem.PriceSnapshot,
-                Quantity = resultItem.Quantity,
-                SpecialInstructions = resultItem.SpecialInstructions,
-                AddedAt = resultItem.AddedAt,
-                LineTotal = resultItem.Quantity * resultItem.PriceSnapshot,
-                IsAvailable = foodItem.IsAvailable,
-                MainImageUrl = foodItem.ImageUrls.FirstOrDefault(img => img.IsMainImage)?.ImageUrl,
-                SellerName = foodItem.Seller.BusinessName
-            });
+            return OperationResult<CartItemDto, ErrorResult>.Success(addCartResponse);
         }
 
         public async Task<OperationResult<CartResponseDto, ErrorResult>> GetCartAsync(string userId)
