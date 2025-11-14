@@ -67,6 +67,17 @@ namespace JwtAuthApi.Controllers
             return Ok(order.OrderToOrderDto());
         }
 
+        [HttpPost("buy-now")]
+        public async Task<ActionResult<OrderDto>> BuyNow(BuyNowRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
+            var result = await _orderRepo.BuyNowAsync(request, GetUserId());
+            if (!result.IsSuccess)
+                return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
+
+            return CreatedAtAction(nameof(GetOrderById), new { id = result.Value!.Id }, result.Value);
+        }
     }
 }

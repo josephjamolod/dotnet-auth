@@ -158,6 +158,88 @@ namespace JwtAuthApi.Repository
             }
         }
 
+        public async Task<OperationResult<OrderDto, ErrorResult>> BuyNowAsync(BuyNowRequest request, string userId)
+        {
+            try
+            {
+                // Validate food item exists and is available
+                var foodItem = await _context.FoodItems
+                    .Include(f => f.Seller)
+                    .Include(f => f.ImageUrls)
+                    .FirstOrDefaultAsync(f => f.Id == request.FoodItemId);
+
+                if (foodItem == null)
+                    return OperationResult<OrderDto, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status404NotFound,
+                        ErrDescription = "Food item not found"
+                    });
+
+                if (!foodItem.IsAvailable)
+                    return OperationResult<OrderDto, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status400BadRequest,
+                        ErrDescription = "This item is currently unavailable"
+                    });
+
+
+                if (request.Quantity <= 0)
+                    return OperationResult<OrderDto, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status400BadRequest,
+                        ErrDescription = "Quantity must be greater than 0"
+                    });
+
+
+                // Calculate totals
+                var subTotal = foodItem.Price * request.Quantity;
+                var estimatedDeliveryTime = foodItem.PreparationTime + 30;
+
+                // Create order using shared helper
+                var createOrder = new CreateOrderDto()
+                {
+                    UserId = userId,
+                    SellerId = foodItem.SellerId,
+                    SubTotal = subTotal,
+                    DeliveryFee = request.DeliveryFee,
+                    EstimatedDeliveryTime = estimatedDeliveryTime,
+                    DeliveryAddress = request.DeliveryAddress,
+                    PhoneNumber = request.PhoneNumber,
+                    Notes = request.Notes
+                };
+
+                var order = createOrder.CreateOrderDtoToOrder();
+                order.OrderNumber = GenerateOrderNumber();
+
+                // Create single order item
+                var orderItem = new OrderItem
+                {
+                    FoodItemId = request.FoodItemId,
+                    Quantity = request.Quantity,
+                    Price = foodItem.Price,
+                    SpecialInstructions = request.SpecialInstructions
+                };
+                order.OrderItems.Add(orderItem);
+
+                // Update food item statistics
+                foodItem.TotalSold += request.Quantity;
+
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync();
+                var finalOrder = await GetOrderDtoById(order.Id);
+                // Return order details
+                return OperationResult<OrderDto, ErrorResult>.Success(finalOrder!);
+            }
+            catch (Exception)
+            {
+                return OperationResult<OrderDto, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status500InternalServerError,
+                    ErrDescription = "Something Went Wrong Buying the item"
+                });
+            }
+        }
+
         private static string GenerateOrderNumber()
         {
             var date = DateTime.UtcNow.ToString("yyyyMMdd");

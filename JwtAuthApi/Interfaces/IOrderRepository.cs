@@ -12,5 +12,6 @@ namespace JwtAuthApi.Interfaces
     {
         Task<OperationResult<CheckoutSelectedResponse, ErrorResult>> CheckoutSelectedSellersAsync(CheckoutSelectedRequest request, string userId);
         Task<OperationResult<Order, ErrorResult>> GetOrderByIdAsync(int id);
+        Task<OperationResult<OrderDto, ErrorResult>> BuyNowAsync(BuyNowRequest request, string userId);
     }
 }

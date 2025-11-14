@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using JwtAuthApi.Dtos.Orders;
 using JwtAuthApi.Dtos.Seller;
 using JwtAuthApi.Models;
 
@@ -57,6 +58,27 @@ namespace JwtAuthApi.Mappers
                 // Timestamps
                 CreatedAt = seller.CreatedAt,
                 ApprovedAt = seller.ApprovedAt
+            };
+        }
+
+        public static Order CreateOrderDtoToOrder(this CreateOrderDto model)
+        {
+            var deliveryFeeValue = model.DeliveryFee ?? 0;
+            var tax = model.SubTotal * 0.12m;
+            var total = model.SubTotal + deliveryFeeValue + tax;
+            return new Order()
+            {
+                CustomerId = model.UserId,
+                SellerId = model.SellerId,
+                SubTotal = model.SubTotal,
+                DeliveryFee = deliveryFeeValue,
+                Tax = model.SubTotal * 0.12m,
+                Total = total,
+                DeliveryAddress = model.DeliveryAddress,
+                PhoneNumber = model.PhoneNumber,
+                Notes = model.Notes,
+                EstimatedDeliveryTime = model.EstimatedDeliveryTime,
+                Status = OrderStatus.Pending
             };
         }
     }
