@@ -127,6 +127,37 @@ namespace JwtAuthApi.Repository
             return OperationResult<CheckoutSelectedResponse, ErrorResult>.Success(response);
         }
 
+        public async Task<OperationResult<Order, ErrorResult>> GetOrderByIdAsync(int id)
+        {
+            try
+            {
+                var order = await _context.Orders
+                     .Include(o => o.Customer)
+                     .Include(o => o.Seller)
+                     .Include(o => o.OrderItems)
+                         .ThenInclude(oi => oi.FoodItem)
+                             .ThenInclude(fi => fi.ImageUrls)
+                     .FirstOrDefaultAsync(o => o.Id == id);
+                if (order == null)
+                    return OperationResult<Order, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status404NotFound,
+                        ErrDescription = "Order not found"
+                    });
+
+                return OperationResult<Order, ErrorResult>.Success(order);
+
+            }
+            catch (Exception)
+            {
+                return OperationResult<Order, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status500InternalServerError,
+                    ErrDescription = "Something Went Wrong Please try again later."
+                });
+            }
+        }
+
         private static string GenerateOrderNumber()
         {
             var date = DateTime.UtcNow.ToString("yyyyMMdd");
@@ -145,6 +176,7 @@ namespace JwtAuthApi.Repository
                 .FirstOrDefaultAsync(o => o.Id == id);
             if (order == null)
                 return null;
+
             return order.OrderToOrderDto();
         }
 
@@ -191,30 +223,24 @@ namespace JwtAuthApi.Repository
         {
             // Calculate totals
             var subTotal = sellerItems.Sum(ci => ci.Quantity * ci.FoodItem.Price);
-            var deliveryFee = request.DeliveryFee ?? 0;
-            var tax = subTotal * 0.12m;
-            var total = subTotal + deliveryFee + tax;
-
             var maxPrepTime = sellerItems.Max(ci => ci.FoodItem.PreparationTime);
             var estimatedDeliveryTime = maxPrepTime + 30;
 
-            // Create order
-            var order = new Order
+            // Create order using shared helper
+            var createOrder = new CreateOrderDto()
             {
-                OrderNumber = GenerateOrderNumber(),
-                CustomerId = userId,
+                UserId = userId,
                 SellerId = sellerId,
                 SubTotal = subTotal,
-                DeliveryFee = deliveryFee,
-                Tax = tax,
-                Total = total,
+                DeliveryFee = request.DeliveryFee,
+                EstimatedDeliveryTime = estimatedDeliveryTime,
                 DeliveryAddress = request.DeliveryAddress,
                 PhoneNumber = request.PhoneNumber,
-                Notes = request.Notes,
-                EstimatedDeliveryTime = estimatedDeliveryTime,
-                Status = OrderStatus.Pending
+                Notes = request.Notes
             };
 
+            var order = createOrder.CreateOrderDtoToOrder();
+            order.OrderNumber = GenerateOrderNumber();
             // Create order items
             foreach (var cartItem in sellerItems)
             {
@@ -232,6 +258,5 @@ namespace JwtAuthApi.Repository
 
             return order;
         }
-
     }
 }

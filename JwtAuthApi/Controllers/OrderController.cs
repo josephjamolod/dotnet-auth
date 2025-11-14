@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using JwtAuthApi.Dtos.Orders;
 using JwtAuthApi.Interfaces;
+using JwtAuthApi.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,10 +18,12 @@ namespace JwtAuthApi.Controllers
     {
         private readonly IOrderRepository _orderRepo;
         private string GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        private bool IsInRole(string role) => User.IsInRole(role);
         public OrderController(IOrderRepository orderRepo)
         {
             _orderRepo = orderRepo;
         }
+
         [HttpPost("checkout-selected")]
         public async Task<ActionResult<CheckoutSelectedResponse>> CheckoutSelectedSellers(CheckoutSelectedRequest request)
         {
@@ -47,5 +50,23 @@ namespace JwtAuthApi.Controllers
             // Full success: all orders created, no errors
             return Ok(response);
         }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<OrderDto>> GetOrderById(int id)
+        {
+            var userId = GetUserId();
+            var result = await _orderRepo.GetOrderByIdAsync(id);
+
+            if (!result.IsSuccess)
+                return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
+
+            var order = result.Value;
+            if (order!.CustomerId != userId && order.SellerId != userId && !IsInRole("Admin"))
+                return Forbid();
+
+            return Ok(order.OrderToOrderDto());
+        }
+
+
     }
 }
