@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using JwtAuthApi.Dtos.Cart;
+using JwtAuthApi.Dtos.Orders;
 using JwtAuthApi.Models;
 
 namespace JwtAuthApi.Mappers
@@ -49,6 +50,16 @@ namespace JwtAuthApi.Mappers
                 TotalItems = cart.CartItems.Sum(ci => ci.Quantity),
                 CreatedAt = cart.CreatedAt,
                 LastActivityAt = cart.LastActivityAt
+            };
+        }
+
+        public static PriceChange CartItemToPriceChange(this CartItem ci)
+        {
+            return new PriceChange()
+            {
+                ItemName = ci.FoodItem.Name,
+                OldPrice = ci.PriceSnapshot,
+                NewPrice = ci.FoodItem.Price
             };
         }
     }
