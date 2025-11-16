@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using JwtAuthApi.Dtos.Orders;
+using JwtAuthApi.Helpers.HelperObjects;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Mappers;
 using Microsoft.AspNetCore.Authorization;
@@ -35,7 +36,7 @@ namespace JwtAuthApi.Controllers
             if (!result.IsSuccess)
             {
                 // All sellers failed
-                return BadRequest(result.Error);
+                return StatusCode(result.Error!.ErrCode, result.Error.ErrDescription);
             }
 
             // Partial success or full success
@@ -78,6 +79,16 @@ namespace JwtAuthApi.Controllers
                 return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
 
             return CreatedAtAction(nameof(GetOrderById), new { id = result.Value!.Id }, result.Value);
+        }
+
+        [HttpGet("my-orders")]
+        public async Task<ActionResult<List<OrderDto>>> GetMyOrders([FromQuery] MyOrdersQuery queryObject)
+        {
+            var result = await _orderRepo.GetMyOrdersAsync(queryObject, GetUserId());
+            if (!result.IsSuccess)
+                return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
+
+            return Ok(result.Value);
         }
     }
 }

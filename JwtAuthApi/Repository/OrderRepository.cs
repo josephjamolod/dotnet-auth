@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using JwtAuthApi.Data;
 using JwtAuthApi.Dtos.Orders;
 using JwtAuthApi.Helpers.HelperObjects;
+using JwtAuthApi.Helpers.QueryBuilders;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Mappers;
 using JwtAuthApi.Models;
@@ -240,6 +241,53 @@ namespace JwtAuthApi.Repository
             }
         }
 
+        public async Task<OperationResult<object, ErrorResult>> GetMyOrdersAsync(MyOrdersQuery queryObject, string userId)
+        {
+            try
+            {
+                var query = _context.Orders
+                   .Include(o => o.Customer)
+                   .Include(o => o.Seller)
+                   .Include(o => o.OrderItems)
+                       .ThenInclude(oi => oi.FoodItem)
+                           .ThenInclude(fi => fi.ImageUrls)
+                   .Where(o => o.CustomerId == userId).AsQueryable();
+
+                // Apply filters
+                query = UserOrderQueryBuilder.ApplyFilters(query, queryObject);
+                // Get total count before pagination
+                var totalCount = await query.CountAsync();
+                // Apply pagination
+                var skip = (queryObject.PageNumber - 1) * queryObject.PageSize;
+
+                //  Materialize the data from database
+                var ordersFromDb = await query
+                    .Skip(skip)
+                    .Take(queryObject.PageSize)
+                    .ToListAsync();
+                //  Apply the mapper in-memory
+                var orders = ordersFromDb
+                    .Select(o => o.OrderToOrderDto())
+                    .ToList();
+
+                return OperationResult<object, ErrorResult>.Success(new
+                {
+                    total = totalCount,
+                    pageNumber = queryObject.PageNumber,
+                    pageSize = queryObject.PageSize,
+                    items = orders
+                });
+            }
+            catch (Exception)
+            {
+                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status500InternalServerError,
+                    ErrDescription = "Something Went Wrong Retrieving Orders"
+                });
+            }
+        }
+
         private static string GenerateOrderNumber()
         {
             var date = DateTime.UtcNow.ToString("yyyyMMdd");
@@ -340,5 +388,7 @@ namespace JwtAuthApi.Repository
 
             return order;
         }
+
+
     }
 }

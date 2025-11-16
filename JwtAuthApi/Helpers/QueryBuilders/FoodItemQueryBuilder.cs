@@ -8,7 +8,7 @@ using JwtAuthApi.Models;
 
 namespace JwtAuthApi.Helpers.QueryBuilders
 {
-    public class FoodItemQueryBuilder
+    public static class FoodItemQueryBuilder
     {
         public static IQueryable<FoodItem> ApplyFilters(IQueryable<FoodItem> query, AllFoodsQuery queryObject)
         {

@@ -7,7 +7,7 @@ using JwtAuthApi.Models;
 
 namespace JwtAuthApi.Helpers.QueryBuilders
 {
-    public class PendingSellerQueryBuilder
+    public static class PendingSellerQueryBuilder
     {
         public static IQueryable<AppUser> ApplyPendingSellerFilters(IQueryable<AppUser> query, PendingSellerQueryObj queryObject)
         {
