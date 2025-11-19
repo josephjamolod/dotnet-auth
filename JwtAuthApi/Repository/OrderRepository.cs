@@ -241,7 +241,7 @@ namespace JwtAuthApi.Repository
             }
         }
 
-        public async Task<OperationResult<object, ErrorResult>> GetMyOrdersAsync(MyOrdersQuery queryObject, string userId)
+        public async Task<OperationResult<PaginatedResponse<OrderDto>, ErrorResult>> GetMyOrdersAsync(MyOrdersQuery queryObject, string userId)
         {
             try
             {
@@ -273,17 +273,17 @@ namespace JwtAuthApi.Repository
                     .Select(o => o.OrderToOrderDto())
                     .ToList();
 
-                return OperationResult<object, ErrorResult>.Success(new
+                return OperationResult<PaginatedResponse<OrderDto>, ErrorResult>.Success(new PaginatedResponse<OrderDto>()
                 {
-                    total = totalCount,
-                    pageNumber = queryObject.PageNumber,
-                    pageSize = queryObject.PageSize,
-                    items = orders
+                    Total = totalCount,
+                    PageNumber = queryObject.PageNumber,
+                    PageSize = queryObject.PageSize,
+                    Items = orders
                 });
             }
             catch (Exception)
             {
-                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                return OperationResult<PaginatedResponse<OrderDto>, ErrorResult>.Failure(new ErrorResult()
                 {
                     ErrCode = StatusCodes.Status500InternalServerError,
                     ErrDescription = "Something Went Wrong Retrieving Orders"

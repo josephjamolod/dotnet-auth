@@ -19,7 +19,7 @@ namespace JwtAuthApi.Repository
         {
             _context = context;
         }
-        public async Task<object> GetAllFoodItemsAsync(AllFoodsQuery queryObject)
+        public async Task<PaginatedResponse<FoodResponseDto>> GetAllFoodItemsAsync(AllFoodsQuery queryObject)
         {
             var query = _context.FoodItems
                   .Include(f => f.Seller)
@@ -47,12 +47,12 @@ namespace JwtAuthApi.Repository
                 .Select(f => f.FoodItemToFoodResponseDto())
                 .ToList();
 
-            return new
+            return new PaginatedResponse<FoodResponseDto>()
             {
-                total = totalCount,
-                pageNumber = queryObject.PageNumber,
-                pageSize = queryObject.PageSize,
-                items = foodItems
+                Total = totalCount,
+                PageNumber = queryObject.PageNumber,
+                PageSize = queryObject.PageSize,
+                Items = foodItems
             };
         }
 
@@ -86,7 +86,7 @@ namespace JwtAuthApi.Repository
             return foodItems;
         }
 
-        public async Task<object> GetSellerMenuAsync(AllFoodsQuery queryObject, string sellerId)
+        public async Task<PaginatedResponse<FoodResponseDto>> GetSellerMenuAsync(AllFoodsQuery queryObject, string sellerId)
         {
             var query = _context.FoodItems
                   .Include(f => f.ImageUrls)
@@ -113,12 +113,12 @@ namespace JwtAuthApi.Repository
                 .Select(f => f.FoodItemToFoodResponseDto())
                 .ToList();
 
-            return new
+            return new PaginatedResponse<FoodResponseDto>()
             {
-                total = totalCount,
-                pageNumber = queryObject.PageNumber,
-                pageSize = queryObject.PageSize,
-                items = foodItems
+                Total = totalCount,
+                PageNumber = queryObject.PageNumber,
+                PageSize = queryObject.PageSize,
+                Items = foodItems
             };
         }
     }

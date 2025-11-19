@@ -64,7 +64,7 @@ namespace JwtAuthApi.Repository
                 businessName = seller.BusinessName
             });
         }
-        public async Task<object> GetPendingSellersAsync(PendingSellerQueryObj queryObject)
+        public async Task<PaginatedResponse<PendingSellerDto>> GetPendingSellersAsync(PendingSellerQueryObj queryObject)
         {
             var sellersQuery = _userManager.Users
                 .Where(u => u.BusinessName != null && !u.IsApproved);
@@ -81,12 +81,12 @@ namespace JwtAuthApi.Repository
                     .Select(u => u.UserToPendingSellerDto())
                     .ToListAsync();
 
-            return new
+            return new PaginatedResponse<PendingSellerDto>()
             {
-                total = totalCount,
-                pageNumber = queryObject.PageNumber,
-                pageSize = queryObject.PageSize,
-                sellers
+                Total = totalCount,
+                PageNumber = queryObject.PageNumber,
+                PageSize = queryObject.PageSize,
+                Items = sellers
             };
         }
     }
