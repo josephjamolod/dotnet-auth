@@ -293,75 +293,86 @@ namespace JwtAuthApi.Repository
 
         public async Task<OperationResult<object, ErrorResult>> UpdateOrderStatusAsync(UpdateOrderStatusParams prop)
         {
-            var order = await _context.Orders.FindAsync(prop.OrderId);
+            try
+            {
+                var order = await _context.Orders.FindAsync(prop.OrderId);
 
-            if (order == null)
+                if (order == null)
+                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status404NotFound,
+                        ErrDescription = "Order not found"
+                    });
+
+                // Authorization checks
+                if (!prop.IsAdmin)
+                {
+                    // Customers can only cancel
+                    if (order.CustomerId == prop.UserId && prop.Status != OrderStatus.Cancelled)
+                        return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                        {
+                            ErrCode = StatusCodes.Status403Forbidden,
+                            ErrDescription = "Forbidden"
+                        });
+
+                    // Sellers can update their own orders (except cancellation)
+                    if (prop.IsSeller && order.SellerId != prop.UserId)
+                        return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                        {
+                            ErrCode = StatusCodes.Status403Forbidden,
+                            ErrDescription = "Forbidden"
+                        });
+
+                    // Non-sellers/non-customers cannot update
+                    if (order.CustomerId != prop.UserId && order.SellerId != prop.UserId)
+                        return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                        {
+                            ErrCode = StatusCodes.Status403Forbidden,
+                            ErrDescription = "Forbidden"
+                        });
+                }
+
+                // Validate status transitions
+                if (!IsValidStatusTransition(order.Status, prop.Status, order.CustomerId == prop.UserId))
+                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status400BadRequest,
+                        ErrDescription = $"Cannot transition from {order.Status} to {prop.Status}"
+                    });
+
+                // Update status and timestamps
+                order.Status = prop.Status;
+
+                switch (prop.Status)
+                {
+                    case OrderStatus.Confirmed:
+                        order.ConfirmedAt = DateTime.UtcNow;
+                        break;
+                    case OrderStatus.Preparing:
+                        order.PreparingAt = DateTime.UtcNow;
+                        break;
+                    case OrderStatus.Ready:
+                        order.ReadyAt = DateTime.UtcNow;
+                        break;
+                    case OrderStatus.Delivered:
+                        order.DeliveredAt = DateTime.UtcNow;
+                        break;
+                    case OrderStatus.Cancelled:
+                        order.CancelledAt = DateTime.UtcNow;
+                        break;
+                }
+
+                await _context.SaveChangesAsync();
+                return OperationResult<object, ErrorResult>.Success(new { message = $"Order status updated to {prop.Status}" });
+            }
+            catch (Exception)
+            {
                 return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
                 {
-                    ErrCode = StatusCodes.Status404NotFound,
-                    ErrDescription = "Order not found"
+                    ErrCode = StatusCodes.Status500InternalServerError,
+                    ErrDescription = "Something Went Wrong Updating order status"
                 });
-
-            // Authorization checks
-            if (!prop.IsAdmin)
-            {
-                // Customers can only cancel
-                if (order.CustomerId == prop.UserId && prop.Status != OrderStatus.Cancelled)
-                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
-                    {
-                        ErrCode = StatusCodes.Status403Forbidden,
-                        ErrDescription = "Forbidden"
-                    });
-
-                // Sellers can update their own orders (except cancellation)
-                if (prop.IsSeller && order.SellerId != prop.UserId)
-                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
-                    {
-                        ErrCode = StatusCodes.Status403Forbidden,
-                        ErrDescription = "Forbidden"
-                    });
-
-                // Non-sellers/non-customers cannot update
-                if (order.CustomerId != prop.UserId && order.SellerId != prop.UserId)
-                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
-                    {
-                        ErrCode = StatusCodes.Status403Forbidden,
-                        ErrDescription = "Forbidden"
-                    });
             }
-
-            // Validate status transitions
-            if (!IsValidStatusTransition(order.Status, prop.Status, order.CustomerId == prop.UserId))
-                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
-                {
-                    ErrCode = StatusCodes.Status400BadRequest,
-                    ErrDescription = $"Cannot transition from {order.Status} to {prop.Status}"
-                });
-
-            // Update status and timestamps
-            order.Status = prop.Status;
-
-            switch (prop.Status)
-            {
-                case OrderStatus.Confirmed:
-                    order.ConfirmedAt = DateTime.UtcNow;
-                    break;
-                case OrderStatus.Preparing:
-                    order.PreparingAt = DateTime.UtcNow;
-                    break;
-                case OrderStatus.Ready:
-                    order.ReadyAt = DateTime.UtcNow;
-                    break;
-                case OrderStatus.Delivered:
-                    order.DeliveredAt = DateTime.UtcNow;
-                    break;
-                case OrderStatus.Cancelled:
-                    order.CancelledAt = DateTime.UtcNow;
-                    break;
-            }
-
-            await _context.SaveChangesAsync();
-            return OperationResult<object, ErrorResult>.Success(new { message = $"Order status updated to {prop.Status}" });
         }
 
         private static string GenerateOrderNumber()

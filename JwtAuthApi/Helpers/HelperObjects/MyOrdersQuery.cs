@@ -14,6 +14,8 @@ namespace JwtAuthApi.Helpers.HelperObjects
         public int Total { get; set; }
 
         public OrderStatus? Status { get; set; } = OrderStatus.Pending;
+        public DateTime? StartDate { get; set; } = null;
+        public DateTime? EndDate { get; set; } = null;
         public bool IsDescending { get; set; } = false;
 
         public int PageNumber { get; set; } = 1;

@@ -20,6 +20,12 @@ namespace JwtAuthApi.Helpers.QueryBuilders
             if (queryObject.Status.HasValue)
                 query = query.Where(o => o.Status == queryObject.Status.Value);
 
+            if (queryObject.StartDate.HasValue)
+                query = query.Where(o => o.CreatedAt >= queryObject.StartDate.Value);
+
+            if (queryObject.EndDate.HasValue)
+                query = query.Where(o => o.CreatedAt <= queryObject.EndDate.Value);
+
             return query;
         }
 
