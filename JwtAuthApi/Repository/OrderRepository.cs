@@ -291,6 +291,79 @@ namespace JwtAuthApi.Repository
             }
         }
 
+        public async Task<OperationResult<object, ErrorResult>> UpdateOrderStatusAsync(UpdateOrderStatusParams prop)
+        {
+            var order = await _context.Orders.FindAsync(prop.OrderId);
+
+            if (order == null)
+                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status404NotFound,
+                    ErrDescription = "Order not found"
+                });
+
+            // Authorization checks
+            if (!prop.IsAdmin)
+            {
+                // Customers can only cancel
+                if (order.CustomerId == prop.UserId && prop.Status != OrderStatus.Cancelled)
+                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status403Forbidden,
+                        ErrDescription = "Forbidden"
+                    });
+
+                // Sellers can update their own orders (except cancellation)
+                if (prop.IsSeller && order.SellerId != prop.UserId)
+                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status403Forbidden,
+                        ErrDescription = "Forbidden"
+                    });
+
+                // Non-sellers/non-customers cannot update
+                if (order.CustomerId != prop.UserId && order.SellerId != prop.UserId)
+                    return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                    {
+                        ErrCode = StatusCodes.Status403Forbidden,
+                        ErrDescription = "Forbidden"
+                    });
+            }
+
+            // Validate status transitions
+            if (!IsValidStatusTransition(order.Status, prop.Status, order.CustomerId == prop.UserId))
+                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status400BadRequest,
+                    ErrDescription = $"Cannot transition from {order.Status} to {prop.Status}"
+                });
+
+            // Update status and timestamps
+            order.Status = prop.Status;
+
+            switch (prop.Status)
+            {
+                case OrderStatus.Confirmed:
+                    order.ConfirmedAt = DateTime.UtcNow;
+                    break;
+                case OrderStatus.Preparing:
+                    order.PreparingAt = DateTime.UtcNow;
+                    break;
+                case OrderStatus.Ready:
+                    order.ReadyAt = DateTime.UtcNow;
+                    break;
+                case OrderStatus.Delivered:
+                    order.DeliveredAt = DateTime.UtcNow;
+                    break;
+                case OrderStatus.Cancelled:
+                    order.CancelledAt = DateTime.UtcNow;
+                    break;
+            }
+
+            await _context.SaveChangesAsync();
+            return OperationResult<object, ErrorResult>.Success(new { message = $"Order status updated to {prop.Status}" });
+        }
+
         private static string GenerateOrderNumber()
         {
             var date = DateTime.UtcNow.ToString("yyyyMMdd");
@@ -390,6 +463,27 @@ namespace JwtAuthApi.Repository
             }
 
             return order;
+        }
+
+
+        private static bool IsValidStatusTransition(OrderStatus current, OrderStatus next, bool isCustomer)
+        {
+            // Customers can only cancel orders in Pending or Confirmed status
+            if (isCustomer)
+                return next == OrderStatus.Cancelled && (current == OrderStatus.Pending || current == OrderStatus.Confirmed);
+
+            // Valid transitions for sellers
+            return (current, next) switch
+            {
+                (OrderStatus.Pending, OrderStatus.Confirmed) => true,
+                (OrderStatus.Pending, OrderStatus.Cancelled) => true,
+                (OrderStatus.Confirmed, OrderStatus.Preparing) => true,
+                (OrderStatus.Confirmed, OrderStatus.Cancelled) => true,
+                (OrderStatus.Preparing, OrderStatus.Ready) => true,
+                (OrderStatus.Ready, OrderStatus.OutForDelivery) => true,
+                (OrderStatus.OutForDelivery, OrderStatus.Delivered) => true,
+                _ => false
+            };
         }
 
 

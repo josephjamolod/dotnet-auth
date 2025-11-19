@@ -90,5 +90,29 @@ namespace JwtAuthApi.Controllers
 
             return Ok(result.Value);
         }
+
+        [HttpPut("{id}/status")]
+        public async Task<IActionResult> UpdateOrderStatus(int id, UpdateOrderStatusRequest request)
+        {
+            var props = new UpdateOrderStatusParams()
+            {
+                IsAdmin = IsInRole("Admin"),
+                IsSeller = IsInRole("Seller"),
+                OrderId = id,
+                Status = request.Status,
+                UserId = GetUserId()
+            };
+
+            var result = await _orderRepo.UpdateOrderStatusAsync(props);
+
+            if (!result.IsSuccess)
+            {
+                if (result.Error!.ErrCode == 403)
+                    return Forbid();
+                return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
+            }
+
+            return Ok(result.Value);
+        }
     }
 }
