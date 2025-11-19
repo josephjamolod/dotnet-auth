@@ -255,6 +255,9 @@ namespace JwtAuthApi.Repository
 
                 // Apply filters
                 query = UserOrderQueryBuilder.ApplyFilters(query, queryObject);
+                // Apply sorting
+                query = UserOrderQueryBuilder.ApplySorting(query, queryObject);
+
                 // Get total count before pagination
                 var totalCount = await query.CountAsync();
                 // Apply pagination
