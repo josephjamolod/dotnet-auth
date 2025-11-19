@@ -10,5 +10,6 @@ namespace JwtAuthApi.Interfaces
     public interface ISellerAnalyticsRepository
     {
         Task<OperationResult<PaginatedResponse<OrderDto>, ErrorResult>> GetSellerOrdersAsync(MyOrdersQuery queryObject, string sellerId);
+        Task<OperationResult<object, ErrorResult>> GetTopSellingItemsAsync(int limit, string sellerId);
     }
 }

@@ -33,5 +33,16 @@ namespace JwtAuthApi.Controllers
 
             return Ok(result.Value);
         }
+
+        [HttpGet("top-items")]
+        [Authorize(Roles = "Seller")]
+        public async Task<IActionResult> GetTopSellingItems([FromQuery] int limit = 10)
+        {
+            var result = await _sellerAnalyticsRepo.GetTopSellingItemsAsync(limit, GetSellerId());
+            if (!result.IsSuccess)
+                return StatusCode(result.Error!.ErrCode, new { message = result.Error.ErrDescription });
+
+            return Ok(result.Value);
+        }
     }
 }

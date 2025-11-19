@@ -8,6 +8,7 @@ using JwtAuthApi.Helpers.HelperObjects;
 using JwtAuthApi.Helpers.QueryBuilders;
 using JwtAuthApi.Interfaces;
 using JwtAuthApi.Mappers;
+using JwtAuthApi.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace JwtAuthApi.Repository
@@ -65,6 +66,69 @@ namespace JwtAuthApi.Repository
                 {
                     ErrCode = StatusCodes.Status500InternalServerError,
                     ErrDescription = "Something Went Wrong Retrieving Orders"
+                });
+            }
+        }
+
+        public async Task<OperationResult<object, ErrorResult>> GetTopSellingItemsAsync(int limit, string sellerId)
+        {
+            try
+            {
+                // First, get the aggregated data
+                var topItemsData = await _context.OrderItems
+                         .Include(oi => oi.Order)
+                         .Where(oi => oi.FoodItem.SellerId == sellerId &&
+                                      oi.Order.Status == OrderStatus.Delivered)
+                         .GroupBy(oi => oi.FoodItemId)
+                         .Select(g => new
+                         {
+                             foodItemId = g.Key,
+                             totalQuantitySold = g.Sum(oi => oi.Quantity),
+                             totalRevenue = g.Sum(oi => oi.Quantity * oi.Price),
+                             orderCount = g.Count()
+                         })
+                         .OrderByDescending(x => x.totalQuantitySold)
+                         .Take(limit)
+                         .ToListAsync();
+
+                // Get the food item IDs
+                var foodItemIds = topItemsData.Select(x => x.foodItemId).ToList();
+
+                // Fetch the food items with images
+                var foodItems = await _context.FoodItems
+                    .Include(fi => fi.ImageUrls)
+                    .Where(fi => foodItemIds.Contains(fi.Id))
+                    .ToListAsync();
+
+                // Combine the data
+                var topItems = topItemsData.Select(data =>
+                {
+                    var foodItem = foodItems.First(fi => fi.Id == data.foodItemId);
+                    return new
+                    {
+                        foodItemId = data.foodItemId,
+                        name = foodItem.Name,
+                        category = foodItem.Category,
+                        price = foodItem.Price,
+                        imageUrls = foodItem.ImageUrls.Select(img => img.ImageUrl).ToList(),
+                        totalQuantitySold = data.totalQuantitySold,
+                        totalRevenue = data.totalRevenue,
+                        orderCount = data.orderCount
+                    };
+                }).ToList();
+
+                return OperationResult<object, ErrorResult>.Success(new
+                {
+                    count = topItems.Count,
+                    items = topItems
+                });
+            }
+            catch (Exception)
+            {
+                return OperationResult<object, ErrorResult>.Failure(new ErrorResult()
+                {
+                    ErrCode = StatusCodes.Status500InternalServerError,
+                    ErrDescription = "Something Went Wrong Retrieving Items"
                 });
             }
         }
