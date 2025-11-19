@@ -127,6 +127,7 @@ builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<IFoodItemRespository, FoodItemRespository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<ISellerAnalyticsRepository, SellerAnalyticsRepository>();
 
 //Register background service for token cleanup
 builder.Services.AddHostedService<TokenCleanupService>();
