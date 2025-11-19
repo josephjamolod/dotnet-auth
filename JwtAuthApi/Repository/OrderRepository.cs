@@ -251,7 +251,7 @@ namespace JwtAuthApi.Repository
                    .Include(o => o.OrderItems)
                        .ThenInclude(oi => oi.FoodItem)
                            .ThenInclude(fi => fi.ImageUrls)
-                   .Where(o => o.CustomerId == userId).AsQueryable();
+                   .Where(o => o.CustomerId == userId);
 
                 // Apply filters
                 query = UserOrderQueryBuilder.ApplyFilters(query, queryObject);

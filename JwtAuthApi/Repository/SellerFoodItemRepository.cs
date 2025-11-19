@@ -35,8 +35,8 @@ namespace JwtAuthApi.Repository
         {
             var query = _context.FoodItems
                   .Include(f => f.ImageUrls)
-                  .Where(f => f.SellerId == sellerId)
-                  .AsQueryable();
+                  .Where(f => f.SellerId == sellerId);
+
 
             // Apply filters
             query = FoodItemQueryBuilder.ApplyFilters(query, queryObject);

@@ -67,8 +67,7 @@ namespace JwtAuthApi.Repository
         public async Task<object> GetPendingSellersAsync(PendingSellerQueryObj queryObject)
         {
             var sellersQuery = _userManager.Users
-                .Where(u => u.BusinessName != null && !u.IsApproved)
-                .AsQueryable();
+                .Where(u => u.BusinessName != null && !u.IsApproved);
 
             sellersQuery = PendingSellerQueryBuilder.ApplyPendingSellerFilters(sellersQuery, queryObject);
             sellersQuery = PendingSellerQueryBuilder.ApplyPendingSellerSorting(sellersQuery, queryObject);
